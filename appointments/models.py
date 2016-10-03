@@ -5,10 +5,10 @@ from django.db import models
 # Create your models here.
 class UserProfile(models.Model):
     user = models.OneToOneField('auth.User')
-    company = models.ForeignKey('Company')
+    client = models.ForeignKey('Client')
 
 
-class Company(models.Model):
+class Client(models.Model):
     name = models.CharField(max_length=255)
 
 

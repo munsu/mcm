@@ -1,13 +1,129 @@
 {% extends "_base.html" %}
-
+{% load static %}
 {% block content %}
     <div class="row">
-        <div class="panel panel-default">
-          <div class="panel-heading">Panel heading without title</div>
-          <div class="panel-body">
-            Panel content
-          </div>
+        <div class="col-md-12">
+            <div class="panel panel-default">
+              <div class="panel-heading">Actionable Responses</div>
+              <div class="panel-body">
+                <table id="action-table" class="table">
+                    <thead>
+                        <tr>
+                            <th>phone number</th>
+                            <th>appt location</th>
+                            <th>appt date</th>
+                            <th>status</th>
+                            <th>actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>7320002923</td>
+                            <td>Room#1</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7325551433</td>
+                            <td>Room#2</td>
+                            <td>2016-10-01 13:00:00</td>
+                            <td>Twilio Error</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7320002928</td>
+                            <td>Room#3</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7320002927</td>
+                            <td>Room#4</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7320002926</td>
+                            <td>Room#5</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7320002925</td>
+                            <td>Room#6</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                        <tr>
+                            <td>7320002924</td>
+                            <td>Room#7</td>
+                            <td>2016-10-01 08:00:00</td>
+                            <td>No reply</td>
+                            <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+              <div class="panel-heading">Recent Responses</div>
+              <div class="panel-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>timestamp</th>
+                            <th>phone number</th>
+                            <th>appt location</th>
+                            <th>appt date</th>
+                            <th>status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2016-09-30 07:20:37</td>
+                            <td>7328882235</td>
+                            <td>Room#2</td>
+                            <td>2016-10-01 09:00:00</td>
+                            <td>Confirmed</td>
+                        </tr>
+                        <tr>
+                            <td>2016-09-30 06:51:07</td>
+                            <td>7320005523</td>
+                            <td>Room#1</td>
+                            <td>2016-10-01 10:00:00</td>
+                            <td>Reschedule</td>
+                        </tr>
+                    </tbody>
+                </table>
+              </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+              <div class="panel-heading">Reports</div>
+              <div class="panel-body">
+                <img class="img-responsive" src="{% static 'img/graph.png' %}" style="max-width: 400px;">
+                Confirmed vs unconfirmed per day graph
+              </div>
+            </div>
         </div>
     </div>
 
 {% endblock content %}
+
+{% block extrajs %}
+<script type="text/javascript">
+$(document).ready(function(){
+    $('#action-table').DataTable();
+});
+</script>
+{% endblock extrajs %}
