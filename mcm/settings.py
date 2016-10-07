@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'appointments',
 ]
 
 MIDDLEWARE = [
@@ -126,5 +127,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-TWILIO_SID = 'AC28f0c966fe59c7ccc21754fcd601fa33'
-TWILIO_TOKEN = 'c0bc2798d02016e219cb41675a080239'
+
+TWILIO_SID = 'AC745d5fcfcb92d6b5fbf188f6c5af4e1e'
+TWILIO_TOKEN = '87f0886e0b3ae129933282c8545ace0c'
+TWILIO_NUMBER = '+15005550006'  # test number should pass

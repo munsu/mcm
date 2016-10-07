@@ -20,4 +20,5 @@ from . import views
 
 urlpatterns = [
     # url(r'^$', TemplateView.as_view(template_name='index.html'), name='home'),
+    url(r'^send_sms/$', views.send_sms_view, name='send_sms'),
 ]
