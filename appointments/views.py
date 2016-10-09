@@ -12,3 +12,5 @@ def send_sms_view(request):
         print "MSG REQ", body, to
         print send_sms(body, to)
     return HttpResponseRedirect(reverse('home'))
+
+# Create Appointment viewset

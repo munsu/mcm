@@ -16,9 +16,15 @@ client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_TOKEN)
 @shared_task
 def send_sms(body, to='+16095322026'):
     """Send a reminder to a phone using Twilio SMS"""
+    # Get appointment
+    # Check date and time
+    # Check if cancelled
+    # Check status of appointment
     message = client.messages.create(
         body=body,
         to=to,
         from_=settings.TWILIO_NUMBER,
+        # Add callback to the thing
     )
     print message.sid
+    # Update Message with sid
