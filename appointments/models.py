@@ -16,7 +16,7 @@ appointment_status      actual appointment status       required    string  stat
 patient_type            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
 procedure_description   scheduled procedure description required    string  what is the primary procedure patient is scheduled for - provide base procedure
 scheduled_room          scheduled operating room or procedure room  required    string  procedure, operating or exam room into which this case or appointment was scheduled
-scheduled_duration      scheduled procedure duration    required    string  how long procedure, operation or appointment scheduled to last for 
+scheduled_duration      scheduled procedure duration    required    string  how long procedure, operation or appointment scheduled to last for
 appointment_date        appointment or procedure date   required    yyyy-mm-dd hh:mm:ss date of appointment.  the daily upload should include t+1 through t+8
 appointment_scheduled_dt    date appointment was scheduled  required    yyyy-mm-dd hh:mm:ss date on which the scheduler added the appointment to the schedule (e.g., the date that the surgeon's office called have the case put on the or schedule)
 provider_specialty      surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
@@ -26,7 +26,7 @@ asa_rating              asa rating                      optional    string  the 
 modified_procedure_description  modified or updated procedure desc  optional    string  what is the modified procedure description
 asa_cd                  asa code                        optional    string  code associated with the american society of anesthesiologists acuity rating for this patient
 provider_id             physician id                    optional    string  employee number for the primary surgeon. must match to physician id in patient accounting system.
-provider_npi_id         physician npi id                optional    string  national provider identification for the primary provider. 
+provider_npi_id         physician npi id                optional    string  national provider identification for the primary provider.
 patient_mrn             medical record number           desired     string  unique identifier assigned to an individual patient used to associate clinical records from one or more encounters
 patient_home_phone      patient home phone number       desired     string  patient home phone number as recorded on the system. if unavailable, leave blank
 patient_mobile_phone    patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
@@ -56,7 +56,8 @@ class Facility(models.Model):
     """
     client = models.ForeignKey('Client', models.PROTECT)
     name = models.CharField(max_length=255)
-    address = models.CharField(max_length=255)  # TODO shortform for sms?
+    # TODO shortform for sms?
+    address = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20)
 
     class Meta:
@@ -71,9 +72,8 @@ class Protocol(models.Model):
     has messages
     """
     clients = models.ManyToManyField('Client')
-    priority = models.IntegerField()
+    priority = models.IntegerField()  # higher 
     rule = models.CharField(max_length=255)
-
 
 
 class MessageTemplate(models.Model):
@@ -86,10 +86,12 @@ class MessageTemplate(models.Model):
         ('call', 'Phone Call'),  # use home_phone or mobile_phone field
     )
     created_datetime = models.DateTimeField(auto_now_add=True)
-    message_type = models.CharField(max_length=255, choices=)  # TODO
+    message_type = models.CharField(max_length=255, choices=MESSAGE_TYPES)  # TODO
+    # sample content: "{date}\n{content}"
     content = models.CharField(max_length=255)  # sms
-    execution_timedelta = models.IntegerField()  # TODO durationfield
-    protocol = models.ForeignKey('Protocol')
+    timedelta = models.DurationField()  # TODO durationfield
+    protocol = models.ForeignKey('Protocol', models.PROTECT)
+
 
 class Message(models.Model):
     """
@@ -125,12 +127,31 @@ class Message(models.Model):
         ('delivered', 'Delivered'),
         ('undelivered', 'Undelivered'),
     )
-    template = models.OneToOneField('MessageTemplate')
-    recipient = models.ForeignKey('Patient')
-    twilio_status = models.CharField(max_length=64, choices=TWILIO_STATUS_CHOICES)
+    TWILIO_ERROR_CHOICES = (
+        ('30001', 'Queue overflow'),
+        ('30002', 'Account suspended'),
+        ('30003', 'Unreachable destination'),
+        ('30004', 'Message blocked'),
+        ('30005', 'Unknown destination handset'),
+        ('30006', 'Landline or unreachable carrier'),
+        ('30007', 'Carrier violation'),
+        ('30008', 'Unknown error'),
+        ('30009', 'Missing segment'),
+        ('30010', 'Message price exceeds max price'),
+    )
+    template = models.ForeignKey('MessageTemplate', models.PROTECT)
+    recipient = models.ForeignKey('Patient', models.PROTECT)
+    appointment = models.ForeignKey('Appointment', models.PROTECT)
+    twilio_status = models.CharField(
+        max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
+    twilio_error = models.CharField(
+        max_length=64, blank=True, null=True, choices=TWILIO_ERROR_CHOICES)
 
     def send(self):
-        pass
+        if self.template.message_type == 'text':
+            body = self.template.content.format(**self.appointment.get_data())
+        else:
+            raise Exception("Email/Call not yet allowed.")
 
 
 class Reply(models.Model):
@@ -141,52 +162,80 @@ class Reply(models.Model):
     content = models.TextField()
     date = models.DateTimeField(auto_now_add=True)
 
-class Appointment(models.Model):
-    client = models.ForeignKey('Client', models.PROTECT)
-    # patient = models.ForeignKey('Patient', models.PROTECT)
-    appointment_confirm_status = models.CharField(max_length=64, choices=TODO)
 
-    appointment_facility = models.ForeignKey('Facility')  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
+class Appointment(models.Model):
+    APPOINTMENT_TYPE_CHOICES = (
+        ('urgent', 'Urgent Case'),
+        ('emergent', 'Emergent Case'),
+        ('elective', 'Elective Case'),
+        ('new visit', 'New Visit Appointment'),
+        ('follow-up', 'Follow-Up Appointment'),
+    )
+    APPOINTMENT_CLASS_CHOICES = (
+        ('day surgery', 'Day Surgery Case'),
+        ('same day admit', 'Same Day Admit Case'),
+        ('inpatient', 'Inpatient Case'),
+        ('outpatient', 'Outpatient Appointment'),
+        ('procedure', 'Procedure Appointment'),
+        ('inpatient consult', 'Inpatient Consult Appointment'),
+    )
+    APPOINTMENT_CONFIRM_CHOICES = (
+        ('confirmed', 'Confirmed'),
+        ('unconfirmed', 'Unconfirmed'),
+    )
+    PATIENT_TYPE_CHOICES = (
+        ('inpatient', 'Inpatient'),
+        ('outpatient', 'Outpatient'),
+    )
+    client = models.ForeignKey('Client', models.PROTECT)
+    patient = models.ForeignKey('Patient', models.PROTECT)
+    # TODO choices
+    appointment_confirm_status = models.CharField(max_length=64)
+
+    appointment_facility = models.ForeignKey('Facility', models.PROTECT)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
     appointment_number = models.CharField(max_length=64)  #     appointment or procedure number required    string  uniquely identifies an appointment or procedure within the health system
     appointment_provider = models.CharField(max_length=255)  #   primary provider, surgeon       required    string  the primary care provider or surgeon of record for this appointment
     appointment_scheduled_service = models.CharField(max_length=255)  #  service                 required    string  service under which the appointment is scheduled (e.g., orthopedics, ent, open heart, etc.)
     appointment_status = models.CharField(max_length=64)  #     actual appointment status       required    string  status of the appointment - only scheduled appointments should be collected here.
     appointment_date = models.DateTimeField()  #     appointment or procedure date   required    yyyy-mm-dd hh:mm:ss date of appointment.  the daily upload should include t+1 through t+8
     appointment_scheduled_dt = models.DateTimeField()  # date appointment was scheduled  required    yyyy-mm-dd hh:mm:ss date on which the scheduler added the appointment to the schedule (e.g., the date that the surgeon's office called have the case put on the or schedule)
-    appointment_type = models.CharField(max_length=64, null=True, blank=True, choices=TODO)  #       appointment or case type        optional    string  type of case (e.g., urgent, emergent, elective, etc.) or type of appointment (new visit, follow-up, etc.)
-    appointment_class = models.CharField(max_length=64, null=True, blank=True, choices=TODO)  #      appointment or case class       optional    string  classification of the case (e.g., day surgery, same day admit, inpatient, etc.) or appointment (outpatient, procedure, inpatient consult etc.)
-    
+    # TODO Add choices
+    appointment_type = models.CharField(max_length=64, null=True, blank=True)  #       appointment or case type        optional    string  type of case (e.g., urgent, emergent, elective, etc.) or type of appointment (new visit, follow-up, etc.)
+    # TODO Add choices
+    appointment_class = models.CharField(max_length=64, null=True, blank=True)  #      appointment or case class       optional    string  classification of the case (e.g., day surgery, same day admit, inpatient, etc.) or appointment (outpatient, procedure, inpatient consult etc.)
+
     procedure_description = models.CharField(max_length=255)  #  scheduled procedure description required    string  what is the primary procedure patient is scheduled for - provide base procedure
     # TODO not needed?
     # modified_procedure_description = models.CharField(max_length=255, null=True, blank=True)  # modified or updated procedure desc  optional    string  what is the modified procedure description
     scheduled_room = models.CharField(max_length=64)  #         scheduled operating room or procedure room  required    string  procedure, operating or exam room into which this case or appointment was scheduled
-    scheduled_duration = models.TODODurationField()  #  scheduled procedure duration    required    string  how long procedure, operation or appointment scheduled to last for 
+    # TODO or daterange or string or durationfield lol
+    scheduled_duration = models.CharField(max_length=64)  #  scheduled procedure duration    required    string  how long procedure, operation or appointment scheduled to last for
     provider_id = models.CharField(max_length=64, null=True, blank=True)  #            physician id                    optional    string  employee number for the primary surgeon. must match to physician id in patient accounting system.
-    provider_npi_id = models.CharField(max_length=64, null=True, blank=True)  #        physician npi id                optional    string  national provider identification for the primary provider. 
-    
+    provider_npi_id = models.CharField(max_length=64, null=True, blank=True)  #        physician npi id                optional    string  national provider identification for the primary provider.
+
     provider_specialty = models.CharField(max_length=64, null=True, blank=True)  #   surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
+
+    # Patient stuff but changes per appointment
+    patient_type = models.CharField(max_length=64, choices=PATIENT_TYPE_CHOICES)  #            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
+    asa_rating = models.CharField(max_length=64, null=True, blank=True)  #             asa rating                      optional    string  the american society of anesthesiologists acuity rating for this patient
+    asa_cd = models.CharField(max_length=64, null=True, blank=True)  #                 asa code
+
+    # def save(self, *args, **kwargs):
+    #     if self.appointment_number
+    #     super(Appointment, self).save(*args, **kwargs)
+    def get_data(self):
+        # return dict of data relevant to sms
+        pass
+
+class Patient(models.Model):
+    # use as id?? TODO
     account_number = models.CharField(max_length=64)  #          patient account identifier      required    string  unique identifier assigned by the provider patient accounting system (pas) when a patient is admitted or seen for services
     patient_first_name = models.CharField(max_length=255)  #       patient first name              required    string  patient first name as in the clinical system
     patient_last_name = models.CharField(max_length=255)  #     patient last name               required    string  patient last name as in the clinical system
-    patient_type = models.CharField(max_length=64, choices=TODO)  #            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
-    # TODO create patient object using this??
     patient_mrn = models.CharField(max_length=64, null=True, blank=True)  #            medical record number           desired     string  unique identifier assigned to an individual patient used to associate clinical records from one or more encounters
     patient_home_phone = models.CharField(max_length=64, null=True, blank=True)  #     patient home phone number       desired     string  patient home phone number as recorded on the system. if unavailable, leave blank
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
-    asa_rating = models.CharField(max_length=64, null=True, blank=True)  #             asa rating                      optional    string  the american society of anesthesiologists acuity rating for this patient
-    asa_cd = models.CharField(max_length=64, null=True, blank=True)  #                 asa code                        optional    string  code associated with the american society of anesthesiologists acuity rating for this patient
-
-    def save(self, *args, **kwargs):
-        if self.appointment_number
-        super(Appointment, self).save(*args, **kwargs)
-
-
-class Patient(models.Model):
-    mrn = models.CharField(max_length=64, unique=True)
-    mobile_phone = models.CharField(max_length=64, null=True, blank=True)
-    home_phone = models.CharField(max_length=64, null=True, blank=True)
-    email_address = models.EmailField(null=True, blank=True)
 #     # strikes and stuff
 
 # class Doctor(models.Model):
