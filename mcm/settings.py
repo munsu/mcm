@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'appointments',
+    'rest_framework',
+    'appointments.apps.AppointmentsConfig',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,31 @@ STATICFILES_DIRS = (
 TWILIO_SID = 'AC745d5fcfcb92d6b5fbf188f6c5af4e1e'
 TWILIO_TOKEN = '87f0886e0b3ae129933282c8545ace0c'
 TWILIO_NUMBER = '+15005550006'  # test number should pass
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+        }
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'appointments': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        
+    },
+}

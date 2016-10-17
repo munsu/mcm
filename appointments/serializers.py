@@ -1,5 +1,9 @@
+import logging
 from rest_framework import serializers
-from .models import Appointment, Patient
+from .models import Appointment, Patient, Facility
+
+
+logger = logging.getLogger(__name__)
 
 """
 APPOINTMENTS FILE LAYOUT
@@ -68,8 +72,35 @@ class AppointmentSerializer(serializers.Serializer):
         TODO map this to the things
         will create Appointment, Patient, and Facility
         """
-        obj, created = Appointment.objects.update_or_create(**validated_data)
+        logger.info("VALIDATED DATA {}".format(validated_data))
+        patient_fields = [f.name for f in Patient._meta.local_fields]
+        # logger.info("PATIENT OB {}".format(Patient._meta.local_fields))
+        # logger.info("PATIENT FIELDS {}".format(patient_fields))
+        patient_data = {k: validated_data.get(k) for k in patient_fields if validated_data.get(k)}
+        patient, created = Patient.objects.update_or_create(**patient_data)
+
+        if created:
+            # TODO stats
+            pass
+        else:
+            # TODO update stats
+            pass
+
+        appointment_fields = [f.name for f in Appointment._meta.local_fields]
+        appointment_data = {k: validated_data.get(k) for k in appointment_fields if validated_data.get(k)}
+        appointment_data['patient'] = patient
+        # TODO revisit post-demo
+        # appointment_facility = appointment_data.pop('appointment_facility')
+        # try:
+        #     facility = Facility.objects.get(validated_data.get("appointment_facility"))
+        # except Facility.DoesNotExist:
+        #     # TODO
+        #     pass
+        appointment, created = Appointment.objects.update_or_create(**appointment_data)
         if created:
             # fire send sms
-            pass
+            logger.info("Created {} {}".format(appointment, created))
+
+
+
 

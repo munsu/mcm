@@ -39,7 +39,7 @@ class UserProfile(models.Model):
     Auth User extension
     """
     user = models.OneToOneField('auth.User')
-    client = models.ForeignKey('Client')
+    client = models.ForeignKey('Client', null=True, blank=True)
 
 
 class Client(models.Model):
@@ -72,7 +72,7 @@ class Protocol(models.Model):
     has messages
     """
     clients = models.ManyToManyField('Client')
-    priority = models.IntegerField()  # higher 
+    priority = models.IntegerField()
     rule = models.CharField(max_length=255)
 
 
@@ -89,7 +89,7 @@ class MessageTemplate(models.Model):
     message_type = models.CharField(max_length=255, choices=MESSAGE_TYPES)  # TODO
     # sample content: "{date}\n{content}"
     content = models.CharField(max_length=255)  # sms
-    timedelta = models.DurationField()  # TODO durationfield
+    timedelta = models.DurationField()  # TODO order is separate field
     protocol = models.ForeignKey('Protocol', models.PROTECT)
 
 
@@ -157,10 +157,24 @@ class Message(models.Model):
 class Reply(models.Model):
     """
     Mobile Originating (MO) Message
+
+    TODO parse content for actions.
+    Should actions be a separate table or hardcoded:
+        OK - confirm
+        STOP - stop
+        RE - resched and stuff
     """
     message = models.ForeignKey('Message', models.PROTECT)
     content = models.TextField()
     date = models.DateTimeField(auto_now_add=True)
+
+
+class AppointmentManager(models.Manager):
+    def get_confirmed(self):
+        return self.get_queryset().filter_by(appointment_confirm_status='confirmed')
+
+    def get_confirmed_by_date(self, date):
+        return self.get_confirmed().filter(appointment_confirm_date__date=date)
 
 
 class Appointment(models.Model):
@@ -190,9 +204,12 @@ class Appointment(models.Model):
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
     # TODO choices
-    appointment_confirm_status = models.CharField(max_length=64)
+    appointment_confirm_status = models.CharField(
+        max_length=64, default='unconfirmed', choices=APPOINTMENT_CONFIRM_CHOICES)
+    appointment_confirm_date = models.DateTimeField(null=True, blank=True)
 
-    appointment_facility = models.ForeignKey('Facility', models.PROTECT)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
+    # appointment_facility = models.ForeignKey('Facility', models.PROTECT)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
+    appointment_facility = models.CharField(max_length=255)  # temporary for demo
     appointment_number = models.CharField(max_length=64)  #     appointment or procedure number required    string  uniquely identifies an appointment or procedure within the health system
     appointment_provider = models.CharField(max_length=255)  #   primary provider, surgeon       required    string  the primary care provider or surgeon of record for this appointment
     appointment_scheduled_service = models.CharField(max_length=255)  #  service                 required    string  service under which the appointment is scheduled (e.g., orthopedics, ent, open heart, etc.)
@@ -220,12 +237,16 @@ class Appointment(models.Model):
     asa_rating = models.CharField(max_length=64, null=True, blank=True)  #             asa rating                      optional    string  the american society of anesthesiologists acuity rating for this patient
     asa_cd = models.CharField(max_length=64, null=True, blank=True)  #                 asa code
 
-    # def save(self, *args, **kwargs):
-    #     if self.appointment_number
-    #     super(Appointment, self).save(*args, **kwargs)
+    objects = AppointmentManager()
+
     def get_data(self):
-        # return dict of data relevant to sms
+        # TODO return dict of data relevant to sms
         pass
+
+    def confirm(self):
+        # TODO update self object appointment_confirm_status+date
+        pass
+
 
 class Patient(models.Model):
     # use as id?? TODO
@@ -237,6 +258,3 @@ class Patient(models.Model):
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
 #     # strikes and stuff
-
-# class Doctor(models.Model):
-#     phone_1 = models.CharField(max_length=255)
