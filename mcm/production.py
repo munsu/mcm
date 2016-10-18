@@ -6,6 +6,17 @@ ALLOWED_HOSTS = ['.komadori.xyz']
 
 STATIC_ROOT = '/webapps/mcm_django/static/'
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mcm',
+        'USER': 'mcm',
+        'PASSWORD': os.getenv('PSQL_PASSWORD'),
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}
+
 # Set as env vars on the server
 TWILIO_SID = None
 TWILIO_TOKEN = None
