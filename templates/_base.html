@@ -17,7 +17,7 @@
                     <a class="btn btn-link" href="{% url 'home' %}">Home</a>
                 </li>
                 <li>
-                    <a type="button" class="btn btn-link" data-toggle="modal" data-target="#sendSms">
+                    <a type="button" class="btn btn-link" data-toggle="modal" data-target="#send-sms">
                       Send SMS
                     </a>
                 </li>
@@ -40,14 +40,14 @@
         <!-- MODALS -->
 
         <!-- SEND SMS MODAL -->
-        <div class="modal fade" id="sendSms" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal fade" id="send-sms" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
               <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="myModalLabel">Send SMS</h4>
               </div>
-              <form method="post" action="{% url 'appointments:send_sms' %}">
+              <form id="send-sms-form" method="post" action="#">
               <div class="modal-body">
                   {% csrf_token %}
                   <div class="form-group">
@@ -103,8 +103,24 @@
                 $("#inputText").text(msg.join('\n'));
             });
             $(function () {
-              $('[data-toggle="tooltip"]').tooltip()
-            })
+                $('[data-toggle="tooltip"]').tooltip()
+            });
+            $("#send-sms-form").submit(function(e) {
+                e.preventDefault();
+                $.ajax({
+                  url: "{% url 'appointments:send_sms' %}",
+                  data: $(this).serialize(),
+                  type: "POST",
+                  success: function(data, textStatus, jqXHR) {
+                      location.reload(); //todo
+                      alert(data);
+                  },
+                  error: function(jqXHR, textStatus, errorThrown) {
+                      console.log(textStatus + " " + errorThrown)
+                      alert(errorThrown);
+                  }
+                });
+            });
         </script>
     {% endblock jscript %}
     {% block extrajs %}
