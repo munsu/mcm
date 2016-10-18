@@ -14,21 +14,23 @@
         <header>
             <ul class="nav nav-pills">
                 <li>
-                    <a class="btn btn-link" href="{% url 'home' %}">Home</a></li>
+                    <a class="btn btn-link" href="{% url 'home' %}">Home</a>
+                </li>
                 <li>
                     <a type="button" class="btn btn-link" data-toggle="modal" data-target="#sendSms">
                       Send SMS
                     </a>
                 </li>
                 <li>
-                    <a class="btn btn-link" href="{% url 'home' %}">Create Appointment</a></li>
+                    <a class="btn btn-link" href="{% url 'home' %}">Create Appointment</a>
+                </li>
                 <li>
+                    <a class="btn btn-link" href="{% url 'home' %}">Manage Protocols</a>
+                </li>
                 <li>
-                    <a class="btn btn-link" href="{% url 'home' %}">Manage Protocols</a></li>
-                <li>
-                <li>
-                    <a class="btn btn-link" href="{% url 'home' %}">Upload CSV</a></li>
-                <li>
+                    <a class="btn btn-link" href="{% url 'home' %}">Upload CSV</a>
+                </li>
+                <li class="pull-right"><a href="{% url 'logout' %}">Hi, {{ request.user }}. Logout?</a></li>
             </ul>
         </header>
         <div class="container">

@@ -38,7 +38,7 @@ class UserProfile(models.Model):
     """
     Auth User extension
     """
-    user = models.OneToOneField('auth.User')
+    user = models.OneToOneField('auth.User', related_name='profile')
     client = models.ForeignKey('Client', null=True, blank=True)
 
 

@@ -4,9 +4,10 @@ from django.urls import reverse
 from .tasks import send_sms
 from .models import Appointment
 from .serializers import AppointmentSerializer
-from rest_framework import viewsets
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from rest_framework import permissions
+from rest_framework.settings import api_settings
+
 
 def send_sms_view(request):
     if request.method == "POST":
@@ -23,6 +24,8 @@ class AppointmentViewSet(viewsets.GenericViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def create(self, request, *args, **kwargs):
+        if request.user.profile.client is None:
+            return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -30,7 +33,7 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save()
+        serializer.save(client=self.request.user.profile.client)
 
     def get_success_headers(self, data):
         try:

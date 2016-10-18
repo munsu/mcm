@@ -1,6 +1,9 @@
 import logging
+from collections import OrderedDict
 from rest_framework import serializers
-from .models import Appointment, Patient, Facility
+from rest_framework.fields import SkipField
+from rest_framework.relations import PKOnlyObject
+from .models import Appointment, Patient, Facility, Client
 
 
 logger = logging.getLogger(__name__)
@@ -101,6 +104,38 @@ class AppointmentSerializer(serializers.Serializer):
             # fire send sms
             logger.info("Created {} {}".format(appointment, created))
 
+        return appointment
 
+
+    def to_representation(self, instance):
+        """
+        Object instance -> Dict of primitive datatypes.
+        """
+        ret = OrderedDict()
+        short_fields = ['appointment_facility', 'procedure_description', 'appointment_date']
+        # for field in fields:
+        #     ret[field] = field.to_representation(instance)
+        # return ret
+        fields = self._readable_fields
+        for field in fields:
+            if field.field_name not in short_fields:
+                continue
+            try:
+                attribute = field.get_attribute(instance)
+            except SkipField:
+                continue
+
+            # We skip `to_representation` for `None` values so that fields do
+            # not have to explicitly deal with that case.
+            #
+            # For related fields with `use_pk_only_optimization` we need to
+            # resolve the pk value.
+            check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
+            if check_for_none is None:
+                ret[field.field_name] = None
+            else:
+                ret[field.field_name] = field.to_representation(attribute)
+
+        return ret
 
 
