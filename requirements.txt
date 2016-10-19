@@ -1,5 +1,6 @@
 celery==3.1.24
 Django==1.10.2
+django-braces==1.9.0
 djangorestframework==3.4.7
 ipython==5.1.0
 psycopg2==2.6.2

@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Client, UserProfile, Appointment, Patient
+from .models import (
+    Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message
+)
 
 
 class UserProfileAdmin(admin.ModelAdmin):
@@ -20,6 +22,18 @@ class PatientAdmin(admin.ModelAdmin):
         AppointmentInline,
     ]
 
+
+class MessageTemplateInline(admin.StackedInline):
+    model = MessageTemplate
+    extra = 1
+
+
+class ProtocolAdmin(admin.ModelAdmin):
+    inlines = [
+        MessageTemplateInline
+    ]
+
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(Patient, PatientAdmin)
+admin.site.register(Protocol, ProtocolAdmin)
