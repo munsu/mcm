@@ -23,7 +23,8 @@ urlpatterns = [
     url(r'^login/$', auth_views.login, name='login'),
     url(r'^logout/$', auth_views.logout, {'next_page': '/login/'}, name='logout'),
     url(r'^', include('django.contrib.auth.urls')),
+
     url(r'^admin/', admin.site.urls),
-    url(r'^$', login_required(TemplateView.as_view(template_name='index.html')), name='home'),
-    url(r'^a/', include('appointments.urls', namespace='appointments')),
+
+    url(r'^', include('appointments.urls')),
 ]

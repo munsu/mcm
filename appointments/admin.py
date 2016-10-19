@@ -14,6 +14,7 @@ class AppointmentInline(admin.StackedInline):
     model = Appointment
     extra = 0
 
+
 class PatientAdmin(admin.ModelAdmin):
     inlines = [
         AppointmentInline,

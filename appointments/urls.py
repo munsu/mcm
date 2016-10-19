@@ -22,10 +22,16 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r'c', views.AppointmentViewSet)
 
-urlpatterns = [
-    url(r'^', include(router.urls)),
+appointments = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    # url(r'^$', TemplateView.as_view(template_name='index.html'), name='home'),
     url(r'^send_sms/$', views.send_sms_view, name='send_sms'),
+    url(r'^reports/', include([
+        url(r'^confirm/$', views.ConfirmReportView.as_view(), name='confirm')
+    ], namespace='reports')),
+    url(r'^', include(router.urls)),
+]
 
+urlpatterns = [
+    url(r'^$', views.IndexView.as_view(), name='home'),
+    url(r'^a/', include(appointments, namespace='appointments')),
 ]
