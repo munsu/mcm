@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 from celery import shared_task
 from django.conf import settings
 from twilio.rest import TwilioRestClient
@@ -7,6 +8,8 @@ from twilio.rest import TwilioRestClient
 
 from .models import Appointment
 
+
+logger = logging.getLogger(__name__)
 
 # Uses credentials from the TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN
 # environment variables
@@ -28,3 +31,7 @@ def send_sms(body, to='+16095322026'):
     )
     print message.sid
     # Update Message with sid
+
+@shared_task
+def deliver_message(appointment_id):
+    pass

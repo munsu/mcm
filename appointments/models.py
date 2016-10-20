@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import datetime
 from django.db import models
 
 """
@@ -50,6 +51,10 @@ class Client(models.Model):
     active = models.BooleanField(default=True)
 
 
+    def __str__(self):
+        return self.name
+
+
 class Facility(models.Model):
     """
     Where patients are appointed to.
@@ -91,6 +96,18 @@ class MessageTemplate(models.Model):
     content = models.CharField(max_length=255)  # sms
     timedelta = models.DurationField()  # TODO order is separate field
     protocol = models.ForeignKey('Protocol', models.PROTECT)
+
+
+class MessageAction(models.Model):
+    ACTION_CHOICES = (
+        ('confirm', 'Confirm Appointment'),
+        ('stop', 'Stop Sending Further Messages'),  # TODO not sure if this equates to cancelled
+        ('reschedule', 'Reschedule Appointment'),
+        ('cancel', 'Cancel Appointment'),
+    )
+    template = models.ForeignKey('MessageTemplate', models.PROTECT, related_name='actions')
+    keyword = models.CharField(max_length=160)
+    action = models.CharField(max_length=255, choices=ACTION_CHOICES)
 
 
 class Message(models.Model):
@@ -153,6 +170,17 @@ class Message(models.Model):
         else:
             raise Exception("Email/Call not yet allowed.")
 
+    def check_for_action(self, body):
+        # TODO parse body relative to message.template.actions
+        if self.template.message_type == 'text':
+            for ma in self.template.actions.all():
+                print ma
+                if ma.keyword in body:
+                    print ma.action
+                    return ma.action
+        else:
+            raise Exception("Email/Call not yet parsed.")
+
 
 class Reply(models.Model):
     """
@@ -167,6 +195,19 @@ class Reply(models.Model):
     message = models.ForeignKey('Message', models.PROTECT)
     content = models.TextField()
     date = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super(Reply, self).save(*args, **kwargs)
+        action = self.message.check_for_action(self.content)
+        if action:
+            try:
+                handler = getattr(self.message.appointment, action)
+                handler(message_id=self.message.id)
+                # TODO call handler. somehow pass/record message.id
+            except AttributeError:
+                raise NotImplementedError("Missing appointment method: {}".format(action))
+        # TODO action loop
+
 
 
 class AppointmentManager(models.Manager):
@@ -196,6 +237,7 @@ class Appointment(models.Model):
     APPOINTMENT_CONFIRM_CHOICES = (
         ('confirmed', 'Confirmed'),
         ('unconfirmed', 'Unconfirmed'),
+        ('cancelled', 'Cancelled'),
     )
     PATIENT_TYPE_CHOICES = (
         ('inpatient', 'Inpatient'),
@@ -243,9 +285,23 @@ class Appointment(models.Model):
         # TODO return dict of data relevant to sms
         pass
 
-    def confirm(self):
-        # TODO update self object appointment_confirm_status+date
-        pass
+    def confirm(self, message_id, *args, **kwargs):
+        # TODO where to put message_id reference
+        self.appointment_confirm_date = datetime.datetime.now()
+        self.appointment_confirm_status = 'confirmed'
+        self.save()
+
+    def stop(self, *args, **kwargs):
+        self.appointment_confirm_status = 'cancel'
+        self.save()
+
+    def reschedule(self, *args, **kwargs):
+        self.appointment_confirm_status = 'cancel'
+        self.save()
+
+    def cancel(self, *args, **kwargs):
+        self.appointment_confirm_status = 'cancel'
+        self.save()
 
 
 class Patient(models.Model):
