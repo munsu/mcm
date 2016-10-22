@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
-import datetime
 from django.db import models
+from django.utils import timezone
 
 """
 APPOINTMENTS FILE LAYOUT
@@ -74,11 +74,15 @@ class Facility(models.Model):
 
 class Protocol(models.Model):
     """
-    has messages
+    has message templates, message actions
     """
+    name = models.CharField(max_length=64)
     clients = models.ManyToManyField('Client')
     priority = models.IntegerField()
     rule = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
 
 
 class MessageTemplate(models.Model):
@@ -275,7 +279,7 @@ class Appointment(models.Model):
     provider_specialty = models.CharField(max_length=64, null=True, blank=True)  #   surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
 
     # Patient stuff but changes per appointment
-    patient_type = models.CharField(max_length=64, choices=PATIENT_TYPE_CHOICES)  #            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
+    patient_type = models.CharField(max_length=64)  #            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
     asa_rating = models.CharField(max_length=64, null=True, blank=True)  #             asa rating                      optional    string  the american society of anesthesiologists acuity rating for this patient
     asa_cd = models.CharField(max_length=64, null=True, blank=True)  #                 asa code
 
@@ -287,7 +291,7 @@ class Appointment(models.Model):
 
     def confirm(self, message_id, *args, **kwargs):
         # TODO where to put message_id reference
-        self.appointment_confirm_date = datetime.datetime.now()
+        self.appointment_confirm_date = timezone.now()
         self.appointment_confirm_status = 'confirmed'
         self.save()
 
@@ -303,6 +307,11 @@ class Appointment(models.Model):
         self.appointment_confirm_status = 'cancel'
         self.save()
 
+    def __str__(self):
+        return "{} at {}: {}".format(
+            self.scheduled_room,
+            self.appointment_date,
+            self.appointment_confirm_status)
 
 class Patient(models.Model):
     # use as id?? TODO
@@ -314,3 +323,7 @@ class Patient(models.Model):
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
 #     # strikes and stuff
+
+    def __str__(self):
+        return "{}{}, {}".format(
+            self.account_number, self.patient_last_name, self.patient_first_name)

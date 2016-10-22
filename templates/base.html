@@ -42,7 +42,7 @@
                     </li>
                     <li class="{% active_class request 'appointments:appointment-list' %}"><a href="{% url 'appointments:appointment-list' %}">Create Appointment</a></li>
                     <li class="{% active_class request '#' %}"><a href="#">Manage Protocols</a></li>
-                    <li class="{% active_class request '#' %}"><a href="#">Upload CSV</a></li>
+                    <li class="{% active_class request 'appointments:upload:csv' %}"><a href="{% url 'appointments:upload:csv' %}">Upload CSV</a></li>
                   {% endif %}
                 </ul>
                 <ul class="nav navbar-nav navbar-right">

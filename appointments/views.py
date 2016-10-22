@@ -1,3 +1,6 @@
+import csv
+import json
+
 from datetime import timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -7,15 +10,18 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
+from django.views.generic.edit import FormView
 
 from braces.views import JSONResponseMixin
 from rest_framework import views, viewsets, status, permissions
+from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
-from .tasks import send_sms
+from .forms import AppointmentsUploadForm
 from .models import Appointment
 from .serializers import AppointmentSerializer
+from .tasks import send_sms
 
 
 def send_sms_view(request):
@@ -83,3 +89,40 @@ class AppointmentViewSet(viewsets.GenericViewSet):
             return {'Location': data[api_settings.URL_FIELD_NAME]}
         except (TypeError, KeyError):
             return {}
+
+    @list_route(methods=['POST'])
+    def batch_file(self, request, *args, **kwargs):
+        print "DATA", request.data
+        if request.user.profile.client is None:
+            return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class AppointmentsUploadFormView(FormView):
+    template_name = 'appointments/upload.html'
+    form_class = AppointmentsUploadForm
+
+    def form_valid(self, form):
+        file = form.cleaned_data.get('file')
+        appointments_data = []
+        reader = csv.DictReader(file)
+        for line in reader:
+            line = {k.lower(): v for k, v in line.iteritems()}
+            appointments_data.append(line)
+            # print json.dumps(line)
+        serializer = AppointmentSerializer(data=appointments_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(client=self.request.user.profile.client)
+        print serializer.data
+
+        # with open(file.file, 'r') as f:
+        #     for line in f:
+        #         print line
+        return super(AppointmentsUploadFormView, self).form_valid(form)
+
+    def get_success_url(self):
+        return reverse('home')

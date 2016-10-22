@@ -23,6 +23,8 @@ class PatientAdmin(admin.ModelAdmin):
         AppointmentInline,
     ]
 
+class AppointmentAdmin(admin.ModelAdmin):
+    pass
 
 class MessageActionInline(admin.StackedInline):
     model = MessageAction
@@ -62,3 +64,4 @@ admin.site.register(Patient, PatientAdmin)
 admin.site.register(Protocol, ProtocolAdmin)
 admin.site.register(MessageTemplate, MessageTemplateAdmin)
 admin.site.register(Message, MessageAdmin)
+admin.site.register(Appointment, AppointmentAdmin)
