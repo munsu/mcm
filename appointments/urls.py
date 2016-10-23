@@ -20,7 +20,10 @@ from . import views
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-router.register(r'c', views.AppointmentViewSet)
+router.register(r'ppointments', views.AppointmentViewSet)
+
+protocol_router = DefaultRouter()
+protocol_router.register(r'rotocols', views.ProtocolsViewSet, base_name='protocols')
 
 appointments = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
@@ -34,7 +37,12 @@ appointments = [
     url(r'^', include(router.urls)),
 ]
 
+protocols = [
+    url(r'^', include(protocol_router.urls)),
+]
+
 urlpatterns = [
     url(r'^$', views.IndexView.as_view(), name='home'),
     url(r'^a/', include(appointments, namespace='appointments')),
+    url(r'^p/', include(protocols, namespace='protocols')),
 ]

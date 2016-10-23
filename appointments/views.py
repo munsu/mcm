@@ -11,16 +11,18 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
+from django.views.generic.list import ListView
 
 from braces.views import JSONResponseMixin
-from rest_framework import views, viewsets, status, permissions
+from rest_framework import exceptions as drf_exceptions
+from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from .forms import AppointmentsUploadForm
-from .models import Appointment
-from .serializers import AppointmentSerializer
+from .models import Appointment, Protocol
+from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
 
 
@@ -67,34 +69,24 @@ class ConfirmReportView(views.APIView):
         })
 
 
-class AppointmentViewSet(viewsets.GenericViewSet):
+class AppointmentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = AppointmentSerializer
     queryset = Appointment.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
-    def create(self, request, *args, **kwargs):
-        if request.user.profile.client is None:
-            return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            if request.user.profile.client is None:
+                raise drf_exceptions.PermissionDenied()
+        except Exception:
+            print "TODO this exception"
+        return super(ProtocolsViewSet, self).dispatch(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(client=self.request.user.profile.client)
 
-    def get_success_headers(self, data):
-        try:
-            return {'Location': data[api_settings.URL_FIELD_NAME]}
-        except (TypeError, KeyError):
-            return {}
-
     @list_route(methods=['POST'])
     def batch_file(self, request, *args, **kwargs):
-        print "DATA", request.data
-        if request.user.profile.client is None:
-            return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -119,10 +111,61 @@ class AppointmentsUploadFormView(FormView):
         serializer.save(client=self.request.user.profile.client)
         print serializer.data
 
-        # with open(file.file, 'r') as f:
-        #     for line in f:
-        #         print line
+        # TODO return number of created appointments.
         return super(AppointmentsUploadFormView, self).form_valid(form)
 
     def get_success_url(self):
         return reverse('home')
+
+
+class ProtocolsViewSet(viewsets.GenericViewSet):
+    serializer_class = ProtocolSerializer
+    # queryset = Protocol.objects.all()
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            if request.user.profile.client is None:
+                raise drf_exceptions.PermissionDenied()
+        except Exception:
+            print "TODO this exception"
+        return super(ProtocolsViewSet, self).dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Protocol.objects.filter(clients=self.request.user.profile.client)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # def get_queryset(self):
+    #     # return protocol -> messagetemplate -> messageaction
+    #     return requ
+
+    def create(self, request, *args, **kwargs):
+        if request.user.profile.client is None:
+            return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        serializer.save(client=self.request.user.profile.client)
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': data[api_settings.URL_FIELD_NAME]}
+        except (TypeError, KeyError):
+            return {}
+
+
+

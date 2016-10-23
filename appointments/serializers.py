@@ -3,7 +3,9 @@ from collections import OrderedDict
 from rest_framework import serializers
 from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
-from .models import Appointment, Patient, Facility, Client
+from .models import (
+    Appointment, Patient, Facility, Client, Protocol, MessageTemplate, MessageAction
+)
 
 
 logger = logging.getLogger(__name__)
@@ -138,4 +140,37 @@ class AppointmentSerializer(serializers.Serializer):
 
         return ret
 
+
+class MessageActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessageAction
+        fields = (
+            'id', 'keyword', 'action'
+        )
+
+
+class MessageTemplateSerializer(serializers.ModelSerializer):
+    actions = MessageActionSerializer(many=True)
+
+    class Meta:
+        model = MessageTemplate
+        depth = 1
+        fields = (
+            'message_type',
+            'content',
+            'timedelta',
+            'actions'
+        )
+
+
+class ProtocolSerializer(serializers.ModelSerializer):
+    templates = MessageTemplateSerializer(many=True)
+
+    class Meta:
+        model = Protocol
+        depth = 1
+        fields = (
+            'id', 'name', 'priority', 'rule', 'templates'
+        )
+        # fields = ('id', 'account_name', 'users', 'created')
 

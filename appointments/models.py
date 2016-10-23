@@ -99,7 +99,7 @@ class MessageTemplate(models.Model):
     # sample content: "{date}\n{content}"
     content = models.CharField(max_length=255)  # sms
     timedelta = models.DurationField()  # TODO order is separate field
-    protocol = models.ForeignKey('Protocol', models.PROTECT)
+    protocol = models.ForeignKey('Protocol', models.PROTECT, related_name='templates')
 
 
 class MessageAction(models.Model):
