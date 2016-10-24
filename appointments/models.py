@@ -194,7 +194,7 @@ class Message(TimeStampedModel):
 
     def __str__(self):
         return "to {}, for {}, body ".format(
-            self.patient.id, self.appointment.id, self.template)
+            self.recipient.id, self.appointment.id, self.template)
 
 class Reply(TimeStampedModel):
     """
