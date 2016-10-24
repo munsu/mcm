@@ -162,6 +162,13 @@ class MessageTemplateSerializer(serializers.ModelSerializer):
             'actions'
         )
 
+    def create(self, validated_data):
+        actions_data = validated_data.pop('actions')
+        template = MessageTemplate.objects.create(**validated_data)
+        for action_data in actions_data:
+            MessageAction.objects.create(template=template, **action_data)
+        return template
+
 
 class ProtocolSerializer(serializers.ModelSerializer):
     templates = MessageTemplateSerializer(many=True)
@@ -174,3 +181,9 @@ class ProtocolSerializer(serializers.ModelSerializer):
         )
         # fields = ('id', 'account_name', 'users', 'created')
 
+    def create(self, validated_data):
+        templates_data = validated_data.pop('templates')
+        protocol = Protocol.objects.create(**validated_data)
+        for template_data in templates_data:
+            MessageTemplate.objects.create(protocol=protocol, **template_data)
+        return protocol

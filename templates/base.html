@@ -41,7 +41,7 @@
                       <a href="#" data-toggle="modal" data-target="#send-sms">Manual SMS</a>
                     </li>
                     <li class="{% active_class request 'appointments:appointment-list' %}"><a href="{% url 'appointments:appointment-list' %}">Create Appointment</a></li>
-                    <li class="{% active_class request 'protocols' %}"><a href="{% url 'protocols' %}">Manage Protocols</a></li>
+                    <li class="{% active_class request 'protocols:manage' %}"><a href="{% url 'protocols:manage' %}">Manage Protocols</a></li>
                     <li class="{% active_class request 'appointments:upload:csv' %}"><a href="{% url 'appointments:upload:csv' %}">Upload CSV</a></li>
                   {% endif %}
                 </ul>
@@ -115,7 +115,9 @@
       <script type="text/javascript" src="{% static 'js/jquery-3.1.1.js' %}"></script>
       <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
       <script type="text/javascript" src="{% static 'js/datatables.min.js' %}"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.bundle.min.js"></script>
+      <script type="text/javascript" src="{% static 'js/underscore.js' %}"></script>
+      <script type="text/javascript" src="{% static 'js/jsonform.js' %}"></script>
+      <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.bundle.min.js"></script> -->
       <script type="text/javascript">
         $("#inquiry-btn").click(function(e) {
           e.preventDefault();

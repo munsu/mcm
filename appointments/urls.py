@@ -18,12 +18,14 @@ from django.contrib import admin
 from . import views
 
 from rest_framework.routers import DefaultRouter
+from rest_framework.schemas import get_schema_view
+
 
 router = DefaultRouter()
 router.register(r'ppointments', views.AppointmentViewSet)
 
 protocol_router = DefaultRouter()
-protocol_router.register(r'rotocols', views.ProtocolsViewSet, base_name='protocols')
+protocol_router.register(r'otocols', views.ProtocolsViewSet, base_name='protocols')
 
 appointments = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
@@ -38,11 +40,15 @@ appointments = [
 ]
 
 protocols = [
-    url(r'^', include(protocol_router.urls)),
+    url(r'^r/', include(protocol_router.urls)),
+    url(r'^rotocols/$', views.ManageProtocolsView.as_view(), name='manage'),
 ]
+
+# schema_view = get_schema_view(title="Server Monitoring API")
 
 urlpatterns = [
     url(r'^$', views.IndexView.as_view(), name='home'),
     url(r'^a/', include(appointments, namespace='appointments')),
     url(r'^p/', include(protocols, namespace='protocols')),
+    # url(r'^i/$', schema_view),
 ]

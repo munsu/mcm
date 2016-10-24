@@ -9,6 +9,7 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
@@ -16,6 +17,7 @@ from django.views.generic.list import ListView
 from braces.views import JSONResponseMixin
 from rest_framework import exceptions as drf_exceptions
 from rest_framework import mixins, permissions, status, views, viewsets
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -80,7 +82,7 @@ class AppointmentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 raise drf_exceptions.PermissionDenied()
         except Exception:
             print "TODO this exception"
-        return super(ProtocolsViewSet, self).dispatch(request, *args, **kwargs)
+        return super(AppointmentViewSet, self).dispatch(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(client=self.request.user.profile.client)
@@ -119,10 +121,12 @@ class AppointmentsUploadFormView(FormView):
 
 
 class ProtocolsViewSet(viewsets.GenericViewSet):
+    authentication_classes = (BasicAuthentication,)
     serializer_class = ProtocolSerializer
     # queryset = Protocol.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
+    @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         try:
             if request.user.profile.client is None:
@@ -152,6 +156,7 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
     def create(self, request, *args, **kwargs):
         if request.user.profile.client is None:
             return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
+        print request.POST
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -159,7 +164,8 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save(client=self.request.user.profile.client)
+        instance = serializer.save()
+        self.request.user.profile.clients.add(instance)
 
     def get_success_headers(self, data):
         try:
@@ -167,5 +173,5 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
         except (TypeError, KeyError):
             return {}
 
-
-
+class ManageProtocolsView(TemplateView):
+    template_name = 'appointments/protocols.html'
