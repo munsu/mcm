@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils import timezone
 
+from model_utils.models import TimeStampedModel
+
 """
 APPOINTMENTS FILE LAYOUT
 field name              logical name                    type        preferred format    description
@@ -114,7 +116,7 @@ class MessageAction(models.Model):
     action = models.CharField(max_length=255, choices=ACTION_CHOICES)
 
 
-class Message(models.Model):
+class Message(TimeStampedModel):
     """
     TODO Separate emaill???
 
@@ -168,6 +170,9 @@ class Message(models.Model):
     twilio_error = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_ERROR_CHOICES)
 
+    class Meta:
+        ordering = ['created', ]
+
     def send(self):
         if self.template.message_type == 'text':
             body = self.template.content.format(**self.appointment.get_data())
@@ -186,7 +191,7 @@ class Message(models.Model):
             raise Exception("Email/Call not yet parsed.")
 
 
-class Reply(models.Model):
+class Reply(TimeStampedModel):
     """
     Mobile Originating (MO) Message
 
@@ -198,7 +203,6 @@ class Reply(models.Model):
     """
     message = models.ForeignKey('Message', models.PROTECT)
     content = models.TextField()
-    date = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         super(Reply, self).save(*args, **kwargs)
@@ -211,6 +215,9 @@ class Reply(models.Model):
             except AttributeError:
                 raise NotImplementedError("Missing appointment method: {}".format(action))
         # TODO action loop
+
+    class Meta:
+        ordering = ['created', ]
 
 
 

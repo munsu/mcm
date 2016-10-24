@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-xs-12 col-md-6">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Messages
+          </div>
+          <div class="panel-body">
+            {% for message in object.message_set.all %}
+              <div class="row">
+                <div class="col-xs-11 col-xs-offset-1">
+                  <div class="panel {% if message.twilio_status == 'queued' %}panel-info{% elif message.twilio_status == 'failed' %}panel-danger{% elif message.twilio_status == 'undelivered' %}panel-warning{% else %}panel-primary{% endif %}">
+                    <div class="panel-body">
+                      {{ message.template.content }}
+                    </div>
+                    <div class="panel-footer">
+                      {{ message.created }} - {{ message.get_twilio_status_display }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% for reply in message.reply_set.all %}
+                <div class="row">
+                  <div class="col-xs-11">
+                    <div class="panel panel-default">
+                      <div class="panel-body">
+                        {{ reply.content }}
+                      </div>
+                      <div class="panel-footer">
+                        {{ message.recipient }} - {{ reply.created }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

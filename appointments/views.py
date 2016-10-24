@@ -9,7 +9,7 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, DetailView
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
@@ -39,16 +39,17 @@ class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
 
+class AppointmentDetailView(LoginRequiredMixin, DetailView):
+    model = Appointment
+
+
 class ConfirmReportView(views.APIView):
     permission_classes = (permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        num_days = 7
+        num_days = int(request.GET.get('days', 7))
         now = timezone.now()
-        dates = [
-            date for date in
-            [now.date() + timedelta(days=n) for n in range(num_days)]
-        ]
+        dates = [now.date() + timedelta(days=n) for n in range(num_days)]
         datasets = {
             status[0]: [0] * num_days
             for status in Appointment.APPOINTMENT_CONFIRM_CHOICES
@@ -58,7 +59,7 @@ class ConfirmReportView(views.APIView):
             .annotate(date=Cast('appointment_date', DateField()))
             .filter(date__range=(dates[0], dates[-1]))
             .order_by('date', 'appointment_confirm_status')
-            .values('appointment_confirm_status', 'date')
+            .values('date', 'appointment_confirm_status')
             .annotate(count=Count('id'))
         )
         for c in confirmations:
