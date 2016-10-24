@@ -323,6 +323,7 @@ jsonform.elementTypes = {
   },
   'textarea':{
     'template':'<textarea id="<%= id %>" name="<%= node.name %>" ' +
+      '<%= (fieldHtmlClass ? "class=\'" + fieldHtmlClass + "\' " : "") %>' +
       'style="height:<%= elt.height || "150px" %>;width:<%= elt.width || "100%" %>;"' +
       '<%= (node.disabled? " disabled" : "")%>' +
       '<%= (node.readOnly ? " readonly=\'readonly\'" : "") %>' +
