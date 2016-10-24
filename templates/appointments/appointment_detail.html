@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-xs-12">
+        <h2>{{ object.appointment_number }}</h2>
+        <div class="row">
+          <div class="col-xs-12 col-md-6">
+            <ul>
+              <li>Status: {{ object.appointment_status }}</li>
+              <li>Date: {{ object.appointment_date }}</li>
+            </ul>
+          </div>
+          <div class="col-xs-12 col-md-6">
+            <h4>Messages</h4>
+            <div class="well">
+              {% for message in object.message_set.all %}
+                <div class="row">
+                  <div class="col-xs-11 col-xs-offset-1">
+                    <div class="panel panel-{% if message.twilio_status == 'queued' %}info{% elif message.twilio_status == 'failed' %}danger{% elif message.twilio_status == 'undelivered' %}warning{% else %}primary{% endif %}">
+                      <div class="panel-body">
+                        {{ message.template.content }}
+                      </div>
+                      <div class="panel-footer clearfix">
+                        <div class="pull-left">
+                          <small>{{ message.recipient }}</small>
+                        </div>
+                        <div class="pull-right">
+                          <span class="label label-{% if message.twilio_status == 'queued' %}info{% elif message.twilio_status == 'failed' %}danger{% elif message.twilio_status == 'undelivered' %}warning{% else %}primary{% endif %}">{{ message.get_twilio_status_display }}</span>
+                          <small>{{ message.created }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% for reply in message.reply_set.all %}
+                  <div class="row">
+                    <div class="col-xs-11">
+                      <div class="panel panel-default">
+                        <div class="panel-body">
+                          {{ reply.content }}
+                        </div>
+                        <div class="panel-footer clearfix">
+                          <div class="pull-left">
+                            <small>{{ message.recipient }}</small>
+                          </div>
+                          <div class="pull-right">
+                            <small>{{ reply.created }}</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% empty %}
+                No messages to show
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

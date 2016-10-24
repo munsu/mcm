@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 
 register = template.Library()
 
+
 @register.simple_tag
 def active_class(request, name, active_class="active"):
     try:

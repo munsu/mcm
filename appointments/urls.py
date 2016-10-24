@@ -28,6 +28,7 @@ protocol_router = DefaultRouter()
 protocol_router.register(r'otocols', views.ProtocolsViewSet, base_name='protocols')
 
 appointments = [
+    url(r'^(?P<pk>\d+)/$', views.AppointmentDetailView.as_view(), name='detail'),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^send_sms/$', views.send_sms_view, name='send_sms'),
     url(r'^reports/', include([
