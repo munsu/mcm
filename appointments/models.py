@@ -334,3 +334,7 @@ class Patient(models.Model):
     def __str__(self):
         return "{}{}, {}".format(
             self.account_number, self.patient_last_name, self.patient_first_name)
+
+    @property
+    def patient_phone(self):
+        return self.patient_home_phone or self.patient_mobile_phone

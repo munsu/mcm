@@ -18,55 +18,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>7320002923</td>
-                  <td>Room#1</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7325551433</td>
-                  <td>Room#2</td>
-                  <td>2016-10-01 13:00:00</td>
-                  <td>Twilio Error</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7320002928</td>
-                  <td>Room#3</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7320002927</td>
-                  <td>Room#4</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7320002926</td>
-                  <td>Room#5</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7320002925</td>
-                  <td>Room#6</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
-                <tr>
-                  <td>7320002924</td>
-                  <td>Room#7</td>
-                  <td>2016-10-01 08:00:00</td>
-                  <td>No reply</td>
-                  <td><a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
-                </tr>
+                {% for appointment in object_list %}
+                  <tr>
+                    <td>{{ appointment.patient.patient_phone }}</td>
+                    <td>{{ appointment.scheduled_room }}</td>
+                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time title="{{ appointment.appointment_date|date:'r' }}" datetime="{{ appointment.appointment_date|date:'c' }}">{{ appointment.appointment_date }}</time></td>
+                    <td>{{ appointment.appointment_status }}</td>
+                    <td><a href="{% url 'appointments:detail' appointment.pk %}">Details</a>&nbsp;|&nbsp;<a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
+                  </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
