@@ -103,6 +103,8 @@ class MessageTemplate(models.Model):
     timedelta = models.DurationField()  # TODO order is separate field
     protocol = models.ForeignKey('Protocol', models.PROTECT, related_name='templates')
 
+    def __str__(self):
+        return "{} - {}".format(self.message_type, self.content)
 
 class MessageAction(models.Model):
     ACTION_CHOICES = (
@@ -190,6 +192,9 @@ class Message(TimeStampedModel):
         else:
             raise Exception("Email/Call not yet parsed.")
 
+    def __str__(self):
+        return "to {}, for {}, body ".format(
+            self.patient.id, self.appointment.id, self.template)
 
 class Reply(TimeStampedModel):
     """
@@ -219,6 +224,8 @@ class Reply(TimeStampedModel):
     class Meta:
         ordering = ['created', ]
 
+    def __str__(self):
+        return self.content
 
 
 class AppointmentManager(models.Manager):
@@ -315,9 +322,10 @@ class Appointment(models.Model):
         self.save()
 
     def __str__(self):
-        return "{} at {}: {}".format(
+        return "{} at {} for pid {}: {}".format(
             self.scheduled_room,
             self.appointment_date,
+            self.patient.id,
             self.appointment_confirm_status)
 
 class Patient(models.Model):
@@ -333,7 +341,7 @@ class Patient(models.Model):
 
     def __str__(self):
         return "{}{}, {}".format(
-            self.account_number, self.patient_last_name, self.patient_first_name)
+            self.id, self.patient_last_name, self.patient_first_name)
 
     @property
     def patient_phone(self):
