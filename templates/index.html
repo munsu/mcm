@@ -23,7 +23,7 @@
                     <td>{{ appointment.patient.patient_phone }}</td>
                     <td>{{ appointment.scheduled_room }}</td>
                     <td data-order="{{ appointment.appointment_date|date:'c' }}"><time title="{{ appointment.appointment_date|date:'r' }}" datetime="{{ appointment.appointment_date|date:'c' }}">{{ appointment.appointment_date }}</time></td>
-                    <td>{{ appointment.appointment_status }}</td>
+                    <td>{{ appointment.get_appointment_confirm_status_display }}</td>
                     <td><a href="{% url 'appointments:detail' appointment.pk %}">Details</a>&nbsp;|&nbsp;<a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a></td>
                   </tr>
                 {% endfor %}

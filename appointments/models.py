@@ -340,7 +340,7 @@ class Patient(models.Model):
 #     # strikes and stuff
 
     def __str__(self):
-        return "{}{}, {}".format(
+        return "{} - {}, {}".format(
             self.id, self.patient_last_name, self.patient_first_name)
 
     @property

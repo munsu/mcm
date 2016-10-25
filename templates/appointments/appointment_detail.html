@@ -6,13 +6,33 @@
       <div class="col-xs-12">
         <h2>{{ object.appointment_number }}</h2>
         <div class="row">
-          <div class="col-xs-12 col-md-6">
-            <ul>
-              <li>Status: {{ object.appointment_status }}</li>
-              <li>Date: <time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></li>
-            </ul>
+          <div class="col-xs-12 col-md-7">
+            <dl class="dl-horizontal">
+              <dt>Client</dt><dd>{{ object.client }}</dd>
+              <dt>Patient</dt><dd>{{ object.patient }}</dd>
+              <dt>Confirm Status</dt><dd>{{ object.get_appointment_confirm_status_display }}</dd>
+              <dt>Confirm Date</dt><dd><time title="{{ object.appointment_confirm_date|date:'r' }}" datetime="{{ object.appointment_confirm_date|date:'c' }}">{{ object.appointment_confirm_date }}</time></dd>
+              <dt>Appointment Facility</dt><dd>{{ object.appointment_facility }}</dd>
+              <dt>Appointment Number</dt><dd>{{ object.appointment_number }}</dd>
+              <dt>Provider</dt><dd>{{ object.appointment_provider }}</dd>
+              <dt>Scheduled Service</dt><dd>{{ object.appointment_scheduled_service }}</dd>
+              <dt>Status</dt><dd>{{ object.appointment_status }}</dd>
+              <dt>Date</dt><dd><time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></dd>
+              <dt>Scheduled Date</dt><dd><time title="{{ object.appointment_scheduled_dt|date:'r' }}" datetime="{{ object.appointment_scheduled_dt|date:'c' }}">{{ object.appointment_scheduled_dt }}</time></dd>
+              <dt>Appointment Type</dt><dd>{{ object.appointment_type }}</dd>
+              <dt>Appointment Class</dt><dd>{{ object.appointment_class }}</dd>
+              <dt>Procedure Description</dt><dd>{{ object.procedure_description }}</dd>
+              <dt>Scheduled Room</dt><dd>{{ object.scheduled_room }}</dd>
+              <dt>Scheduled Duration</dt><dd>{{ object.scheduled_duration }}</dd>
+              <dt>Provider ID</dt><dd>{{ object.provider_id }}</dd>
+              <dt>Provider NPI ID</dt><dd>{{ object.provider_npi_id }}</dd>
+              <dt>Provider Specialty</dt><dd>{{ object.provider_specialty }}</dd>
+              <dt>Patient Type</dt><dd>{{ object.patient_type }}</dd>
+              <dt>ASA Rating</dt><dd>{{ object.asa_rating }}</dd>
+              <dt>ASA CD</dt><dd>{{ object.asa_cd }}</dd>
+            </dl>
           </div>
-          <div class="col-xs-12 col-md-6">
+          <div class="col-xs-12 col-md-5">
             <h4>Messages</h4>
             <div class="well">
               {% for message in object.message_set.all %}
