@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.forms.models import model_to_dict
 from django.utils import timezone
 
 from model_utils.models import TimeStampedModel
@@ -165,7 +166,6 @@ class Message(TimeStampedModel):
         ('30010', 'Message price exceeds max price'),
     )
     template = models.ForeignKey('MessageTemplate', models.PROTECT)
-    recipient = models.ForeignKey('Patient', models.PROTECT)
     appointment = models.ForeignKey('Appointment', models.PROTECT)
     twilio_status = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
@@ -174,6 +174,10 @@ class Message(TimeStampedModel):
 
     class Meta:
         ordering = ['created', ]
+
+    @property
+    def recipient(self):
+        return self.appointment.patient
 
     def send(self):
         if self.template.message_type == 'text':
@@ -252,20 +256,27 @@ class Appointment(models.Model):
         ('procedure', 'Procedure Appointment'),
         ('inpatient consult', 'Inpatient Consult Appointment'),
     )
+    APPOINTMENT_CONFIRM_CONFIRMED, \
+        APPOINTMENT_CONFIRM_UNCONFIRMED, \
+        APPOINTMENT_CONFIRM_CANCELLED = (
+            'confirmed', 'unconfirmed', 'cancelled')
     APPOINTMENT_CONFIRM_CHOICES = (
-        ('confirmed', 'Confirmed'),
-        ('unconfirmed', 'Unconfirmed'),
-        ('cancelled', 'Cancelled'),
+        (APPOINTMENT_CONFIRM_CONFIRMED, 'Confirmed'),
+        (APPOINTMENT_CONFIRM_UNCONFIRMED, 'Unconfirmed'),
+        (APPOINTMENT_CONFIRM_CANCELLED, 'Cancelled'),
     )
+    PATIENT_TYPE_INPATIENT, PATIENT_TYPE_OUTPATIENT = ('inpatient', 'outpatient')
     PATIENT_TYPE_CHOICES = (
-        ('inpatient', 'Inpatient'),
-        ('outpatient', 'Outpatient'),
+        (PATIENT_TYPE_INPATIENT, 'Inpatient'),
+        (PATIENT_TYPE_OUTPATIENT, 'Outpatient'),
     )
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
     # TODO choices
     appointment_confirm_status = models.CharField(
-        max_length=64, default='unconfirmed', choices=APPOINTMENT_CONFIRM_CHOICES)
+        max_length=64,
+        default=APPOINTMENT_CONFIRM_UNCONFIRMED,
+        choices=APPOINTMENT_CONFIRM_CHOICES)
     appointment_confirm_date = models.DateTimeField(null=True, blank=True)
 
     # appointment_facility = models.ForeignKey('Facility', models.PROTECT)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
@@ -300,25 +311,28 @@ class Appointment(models.Model):
     objects = AppointmentManager()
 
     def get_data(self):
-        # TODO return dict of data relevant to sms
-        pass
+        return model_to_dict(self)
+
+    def should_receive_messages(self):
+        """TODO set this on the patient level."""
+        return self.appointment_confirm_status != self.APPOINTMENT_CONFIRM_CANCELLED
 
     def confirm(self, message_id, *args, **kwargs):
         # TODO where to put message_id reference
         self.appointment_confirm_date = timezone.now()
-        self.appointment_confirm_status = 'confirmed'
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CONFIRMED
         self.save()
 
     def stop(self, *args, **kwargs):
-        self.appointment_confirm_status = 'cancel'
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
 
     def reschedule(self, *args, **kwargs):
-        self.appointment_confirm_status = 'cancel'
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
 
     def cancel(self, *args, **kwargs):
-        self.appointment_confirm_status = 'cancel'
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
 
     def __str__(self):
@@ -345,4 +359,4 @@ class Patient(models.Model):
 
     @property
     def patient_phone(self):
-        return self.patient_home_phone or self.patient_mobile_phone
+        return self.patient_mobile_phone or self.patient_home_phone

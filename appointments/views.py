@@ -123,12 +123,10 @@ class AppointmentsUploadFormView(FormView):
 
 
 class ProtocolsViewSet(viewsets.GenericViewSet):
-    authentication_classes = (BasicAuthentication,)
     serializer_class = ProtocolSerializer
     # queryset = Protocol.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
-    @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         try:
             if request.user.profile.client is None:
@@ -158,7 +156,7 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
     def create(self, request, *args, **kwargs):
         if request.user.profile.client is None:
             return Response('User has no client', status=status.HTTP_401_UNAUTHORIZED)
-        print request.POST
+        print request.data
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
