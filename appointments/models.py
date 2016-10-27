@@ -166,7 +166,8 @@ class Message(TimeStampedModel):
         ('30010', 'Message price exceeds max price'),
     )
     template = models.ForeignKey('MessageTemplate', models.PROTECT)
-    appointment = models.ForeignKey('Appointment', models.PROTECT)
+    appointment = models.ForeignKey(
+        'Appointment', models.PROTECT, related_name='messages')
     twilio_status = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
     twilio_error = models.CharField(
@@ -272,6 +273,7 @@ class Appointment(models.Model):
     )
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
+    protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
     # TODO choices
     appointment_confirm_status = models.CharField(
         max_length=64,
@@ -335,12 +337,28 @@ class Appointment(models.Model):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
 
+    def find_protocol(self):
+        # TODO base this on rules
+        return Protocol.objects.filter(clients=self.client).first()
+
+    def get_next_template(self, datetime=None):
+        if datetime is None:
+            datetime = timezone.now()
+        dday_timedelta = self.appointment_date - datetime
+        return self.protocol.templates.filter(
+            timedelta__lt=dday_timedelta).order_by('-timedelta').first()
+
+    def save(self, *args, **kwargs):
+        self.protocol = self.find_protocol()
+        super(Appointment, self).save(*args, **kwargs)
+
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
             self.scheduled_room,
             self.appointment_date,
             self.patient.id,
             self.appointment_confirm_status)
+
 
 class Patient(models.Model):
     # use as id?? TODO
