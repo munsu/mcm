@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import datetime
 from django.db import models
 from django.forms.models import model_to_dict
 from django.utils import timezone
@@ -101,7 +102,8 @@ class MessageTemplate(models.Model):
     message_type = models.CharField(max_length=255, choices=MESSAGE_TYPES)  # TODO
     # sample content: "{date}\n{content}"
     content = models.TextField()  # sms
-    timedelta = models.DurationField()  # TODO order is separate field
+    daydelta = models.DurationField()  # TODO order is separate field
+    time = models.TimeField()  # TODO widget for this should be choices
     protocol = models.ForeignKey('Protocol', models.PROTECT, related_name='templates')
 
     def __str__(self):
@@ -179,6 +181,14 @@ class Message(TimeStampedModel):
     @property
     def recipient(self):
         return self.appointment.patient
+
+    @property
+    def scheduled_delivery_datetime(self):
+        ddate = self.appointment.appointment_scheduled_dt + self.template.daydelta
+        dtime = self.template.time
+        return ddate.replace(
+            hour=dtime.hour, minute=dtime.minute,
+            second=dtime.second, microsecond=dtime.microsecond)
 
     def send(self):
         if self.template.message_type == 'text':
@@ -342,15 +352,27 @@ class Appointment(models.Model):
         return Protocol.objects.filter(clients=self.client).first()
 
     def get_next_template(self, datetime=None):
+        # TODO incomplete. need to aggregate time
         if datetime is None:
             datetime = timezone.now()
         dday_timedelta = self.appointment_date - datetime
         return self.protocol.templates.filter(
-            timedelta__lt=dday_timedelta).order_by('-timedelta').first()
+            daydelta__lt=dday_timedelta).order_by('-daydelta').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
         super(Appointment, self).save(*args, **kwargs)
+        # TODO check the case for adjusted appointment dates.
+        self.schedule_next_message()
+
+    def schedule_next_message(self):
+        message, created = self.messages.get_or_create(
+            template=self.get_next_template())
+        if created:
+            # TODO store task id somewhere
+            from .tasks import deliver_message
+            return deliver_message.apply_async(
+                (message.id,), eta=message.scheduled_delivery_datetime)
 
     def __str__(self):
         return "{} at {} for pid {}: {}".format(

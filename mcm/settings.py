@@ -158,6 +158,17 @@ TWILIO_SID = 'AC745d5fcfcb92d6b5fbf188f6c5af4e1e'
 TWILIO_TOKEN = '87f0886e0b3ae129933282c8545ace0c'
 TWILIO_NUMBER = '+15005550006'  # test number should pass
 
+## Broker settings.
+BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+
+# List of modules to import when celery starts.
+CELERY_IMPORTS = ('appointments.tasks', )
+
+## Using the database to store task state and results.
+# CELERY_RESULT_BACKEND = 'db+sqlite:///results.db'
+
+# CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
