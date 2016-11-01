@@ -158,7 +158,8 @@ class MessageTemplateSerializer(serializers.ModelSerializer):
         fields = (
             'message_type',
             'content',
-            'timedelta',
+            'daydelta',
+            'time',
             'actions'
         )
 
