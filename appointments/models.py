@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import datetime
 from django.db import models
 from django.forms.models import model_to_dict
 from django.utils import timezone

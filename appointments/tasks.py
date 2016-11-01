@@ -41,11 +41,11 @@ def deliver_message(appointment_message_id):
     get protocol and template from appointment
     """
     try:
-        appointment_message = Message.objects.get(appointment_message_id)
+        appointment_message = Message.objects.get(id=appointment_message_id)
         appointment = appointment_message.appointment
         message_template = appointment_message.template
-        # appointment = Appointment.objects.get(appointment_id)
-        # message_template = MessageTemplate.objects.get(message_template_id)
+        # appointment = Appointment.objects.get(id=appointment_id)
+        # message_template = MessageTemplate.objects.get(id=message_template_id)
     except (Appointment.DoesNotExist,
             MessageTemplate.DoesNotExist,
             Message.DoesNotExist):
@@ -57,14 +57,17 @@ def deliver_message(appointment_message_id):
     # check time
     if timezone.now() < appointment_message.scheduled_delivery_datetime:
         # don't send/ skip message
+        logger.info("skipping message")
         pass
     else:
+        logger.info("sending message")
         message = client.messages.create(
             body=message_template.content.format(**appointment.get_data()),
-            to=to,
+            to=appointment_message.recipient.patient_phone,
             from_=settings.TWILIO_NUMBER,
             # Add callback to the thing
         )
+        logger.info(message.sid)
         # TODO set a field in appointment_message as id from twilio
     appointment.schedule_next_message()
     # next_message = appointment.get_next_template()
