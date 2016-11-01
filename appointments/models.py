@@ -365,13 +365,15 @@ class Appointment(models.Model):
         self.schedule_next_message()
 
     def schedule_next_message(self):
-        message, created = self.messages.get_or_create(
-            template=self.get_next_template())
-        if created:
-            # TODO store task id somewhere
-            from .tasks import deliver_message
-            return deliver_message.apply_async(
-                (message.id,), eta=message.scheduled_delivery_datetime)
+        template = self.get_next_template()
+        if template:
+            message, created = self.messages.get_or_create(
+                template=template)
+            if created:
+                # TODO store task id somewhere
+                from .tasks import deliver_message
+                return deliver_message.apply_async(
+                    (message.id,), eta=message.scheduled_delivery_datetime)
 
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
