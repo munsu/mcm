@@ -1,11 +1,14 @@
 from __future__ import unicode_literals
 
+import logging
+
 from django.db import models
 from django.forms.models import model_to_dict
 from django.utils import timezone
 
 from model_utils.models import TimeStampedModel
 
+logger = logging.getLogger(__name__)
 """
 APPOINTMENTS FILE LAYOUT
 field name              logical name                    type        preferred format    description
@@ -354,9 +357,9 @@ class Appointment(models.Model):
         # TODO incomplete. need to aggregate time
         if datetime is None:
             datetime = timezone.now()
-        dday_timedelta = self.appointment_date - datetime
+        dday_timedelta =  datetime - self.appointment_date
         return self.protocol.templates.filter(
-            daydelta__lt=dday_timedelta).order_by('-daydelta').first()
+            daydelta__gt=dday_timedelta).order_by('daydelta').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
@@ -372,6 +375,8 @@ class Appointment(models.Model):
             if created:
                 # TODO store task id somewhere
                 from .tasks import deliver_message
+                logger.info("scheduling message for {} to be sent at {}".format(
+                    self.__str__, message.scheduled_delivery_datetime))
                 return deliver_message.apply_async(
                     (message.id,), eta=message.scheduled_delivery_datetime)
 
