@@ -186,11 +186,15 @@ class Message(TimeStampedModel):
 
     @property
     def scheduled_delivery_datetime(self):
-        ddate = self.appointment.appointment_scheduled_dt + self.template.daydelta
+        ddate = self.appointment.appointment_date + self.template.daydelta
         dtime = self.template.time
         return ddate.replace(
             hour=dtime.hour, minute=dtime.minute,
             second=dtime.second, microsecond=dtime.microsecond)
+
+    @property
+    def body(self):
+        return self.template.content.format(**self.appointment.get_data())
 
     def send(self):
         if self.template.message_type == 'text':

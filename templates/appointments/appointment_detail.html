@@ -40,7 +40,7 @@
                   <div class="col-xs-11 col-xs-offset-1">
                     <div class="panel panel-{% if message.twilio_status == 'queued' %}info{% elif message.twilio_status == 'failed' %}danger{% elif message.twilio_status == 'undelivered' %}warning{% else %}primary{% endif %}">
                       <div class="panel-body">
-                        {{ message.template.content }}
+                        {{ message.body }}
                       </div>
                       <div class="panel-footer clearfix">
                         {% if message.twilio_status %}
@@ -49,7 +49,7 @@
                           </div>
                         {% endif %}
                         <div class="pull-right">
-                          <time class="small" title="{{ message.created|date:'r' }}" datetime="{{ message.created|date:'c' }}">{{ message.created }}</time>
+                          <time class="small" title="{{ message.scheduled_delivery_datetime|date:'r' }}" datetime="{{ message.scheduled_delivery_datetime|date:'c' }}">{{ message.scheduled_delivery_datetime }}</time>
                         </div>
                       </div>
                     </div>
