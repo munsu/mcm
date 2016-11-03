@@ -106,7 +106,7 @@ class MessageTemplate(models.Model):
     content = models.TextField()  # sms
     daydelta = models.DurationField()  # TODO order is separate field
     time = models.TimeField()  # TODO widget for this should be choices
-    protocol = models.ForeignKey('Protocol', models.PROTECT, related_name='templates')
+    protocol = models.ForeignKey('Protocol', models.CASCADE, related_name='templates')
 
     def __str__(self):
         return "{} - {}".format(self.message_type, self.content)
@@ -118,7 +118,7 @@ class MessageAction(models.Model):
         ('reschedule', 'Reschedule Appointment'),
         ('cancel', 'Cancel Appointment'),
     )
-    template = models.ForeignKey('MessageTemplate', models.PROTECT, related_name='actions')
+    template = models.ForeignKey('MessageTemplate', models.CASCADE, related_name='actions')
     keyword = models.CharField(max_length=160)
     action = models.CharField(max_length=255, choices=ACTION_CHOICES)
 
@@ -169,9 +169,9 @@ class Message(TimeStampedModel):
         ('30009', 'Missing segment'),
         ('30010', 'Message price exceeds max price'),
     )
-    template = models.ForeignKey('MessageTemplate', models.PROTECT)
+    template = models.ForeignKey('MessageTemplate', models.CASCADE)
     appointment = models.ForeignKey(
-        'Appointment', models.PROTECT, related_name='messages')
+        'Appointment', models.CASCADE, related_name='messages')
     twilio_status = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
     twilio_error = models.CharField(
@@ -214,8 +214,8 @@ class Message(TimeStampedModel):
             raise Exception("Email/Call not yet parsed.")
 
     def __str__(self):
-        return "to {}, for {}, body ".format(
-            self.recipient.id, self.appointment.id, self.template)
+        return "{}: {}".format(
+            self.scheduled_delivery_datetime, self.template)
 
 class Reply(TimeStampedModel):
     """
@@ -227,7 +227,7 @@ class Reply(TimeStampedModel):
         STOP - stop
         RE - resched and stuff
     """
-    message = models.ForeignKey('Message', models.PROTECT)
+    message = models.ForeignKey('Message', models.CASCADE)
     content = models.TextField()
 
     def save(self, *args, **kwargs):
@@ -363,7 +363,8 @@ class Appointment(models.Model):
             datetime = timezone.now()
         dday_timedelta =  datetime - self.appointment_date
         return self.protocol.templates.filter(
-            daydelta__gt=dday_timedelta).order_by('daydelta').first()
+            daydelta__gt=dday_timedelta,
+            time__lt=a.appointment_date.time()).order_by('daydelta').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
@@ -375,7 +376,7 @@ class Appointment(models.Model):
         template = self.get_next_template()
         if template:
             message, created = self.messages.get_or_create(
-                template=template)
+                template=template, twilio_status='queued')
             if created:
                 # TODO store task id somewhere
                 from .tasks import deliver_message

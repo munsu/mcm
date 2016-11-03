@@ -67,6 +67,8 @@ def deliver_message(appointment_message_id):
             from_=settings.TWILIO_NUMBER,
             # Add callback to the thing
         )
+        appointment_message.twilio_status = 'delivered'
+        appointment_message.save()
         logger.info(message.sid)
         # TODO set a field in appointment_message as id from twilio
     appointment.schedule_next_message()

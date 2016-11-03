@@ -49,6 +49,7 @@ protocols = [
 
 urlpatterns = [
     url(r'^$', views.IndexView.as_view(), name='home'),
+    url(r'^t/$', views.twilio_reply, name='twilio'),
     url(r'^a/', include(appointments, namespace='appointments')),
     url(r'^p/', include(protocols, namespace='protocols')),
     # url(r'^i/$', schema_view),

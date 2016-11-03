@@ -1,12 +1,14 @@
 import csv
 import json
+import logging
+import twilio.twiml
 
 from datetime import timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, DateField
 from django.db.models.functions import Cast
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.utils import timezone
 
@@ -23,9 +25,11 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from .forms import AppointmentsUploadForm
-from .models import Appointment, Protocol
+from .models import Appointment, Protocol, Message
 from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
+
+logger = logging.getLogger(__name__)
 
 
 def send_sms_view(request):
@@ -175,3 +179,19 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
 
 class ManageProtocolsView(TemplateView):
     template_name = 'appointments/protocols.html'
+
+
+def twilio_reply(request):
+    """TODO"""
+    try:
+        from_number = request.GET.get('From', None)
+        body = request.GET.get('Body', None)
+        m = Message.objects.filter(
+            appointment__patient__patient_mobile_phone=from_number,
+            twilio_status='delivered').last()
+        m.reply_set.create(content=body)
+    except Exception as e:
+        logger.info(str(e))
+    resp = twilio.twiml.Response()
+    resp.message("OK")
+    return HttpResponse(resp)
