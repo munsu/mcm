@@ -364,7 +364,7 @@ class Appointment(models.Model):
         dday_timedelta =  datetime - self.appointment_date
         return self.protocol.templates.filter(
             daydelta__gt=dday_timedelta,
-            time__lt=a.appointment_date.time()).order_by('daydelta').first()
+            time__lt=self.appointment_date.time()).order_by('daydelta').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
