@@ -380,8 +380,10 @@ class Appointment(models.Model):
         template = self.get_next_template()
         if template:
             message, created = self.messages.get_or_create(
-                template=template, twilio_status='queued')
+                template=template)
             if created:
+                message.twilio_status = 'queued'
+                message.save()
                 # TODO store task id somewhere
                 from .tasks import deliver_message
                 logger.info("scheduling message for {} to be sent at {}".format(
