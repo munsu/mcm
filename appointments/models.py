@@ -358,13 +358,12 @@ class Appointment(models.Model):
         return Protocol.objects.filter(clients=self.client).first()
 
     def get_next_template(self, datetime=None):
-        # TODO incomplete. need to aggregate time
+        # TODO incomplete. need to aggregate time.time__lt=self.appointment_date.time()
         if datetime is None:
             datetime = timezone.now()
         dday_timedelta =  datetime - self.appointment_date
         return self.protocol.templates.filter(
-            daydelta__gt=dday_timedelta,
-            time__lt=self.appointment_date.time()).order_by('daydelta').first()
+            daydelta__gt=dday_timedelta).order_by('daydelta').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
