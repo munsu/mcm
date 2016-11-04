@@ -5,6 +5,7 @@ import twilio.twiml
 
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, DateField
 from django.db.models.functions import Cast
@@ -193,5 +194,5 @@ def twilio_reply(request):
     except Exception as e:
         logger.info(str(e))
     resp = twilio.twiml.Response()
-    resp.message("OK")
+    resp.message(msg="OK", sender=settings.TWILIO_NUMBER)
     return HttpResponse(resp)

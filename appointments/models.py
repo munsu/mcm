@@ -367,6 +367,11 @@ class Appointment(models.Model):
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
+        if timezone.is_naive(self.appointment_date):
+            self.appointment_date = timezone.make_aware(self.appointment_date)
+        if timezone.is_naive(self.appointment_scheduled_dt):
+            self.appointment_scheduled_dt = timezone.make_aware(
+                self.appointment_scheduled_dt)
         super(Appointment, self).save(*args, **kwargs)
         # TODO check the case for adjusted appointment dates.
         self.schedule_next_message()
