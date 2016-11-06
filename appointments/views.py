@@ -185,6 +185,7 @@ class ManageProtocolsView(TemplateView):
 def twilio_reply(request):
     """TODO"""
     try:
+        logger.info("<twilio_reply>:{}".format(request.GET))
         from_number = request.GET.get('From', None)
         body = request.GET.get('Body', None)
         m = Message.objects.filter(

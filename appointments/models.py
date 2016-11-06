@@ -233,6 +233,7 @@ class Reply(TimeStampedModel):
     def save(self, *args, **kwargs):
         super(Reply, self).save(*args, **kwargs)
         action = self.message.check_for_action(self.content)
+        logger.info("<reply save>\tReply:{}\tAction:{}".format(self.content, action))
         if action:
             try:
                 handler = getattr(self.message.appointment, action)
