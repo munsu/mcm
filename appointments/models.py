@@ -4,6 +4,7 @@ import logging
 
 from django.db import models
 from django.forms.models import model_to_dict
+from django.urls import reverse
 from django.utils import timezone
 
 from model_utils.models import TimeStampedModel
@@ -196,6 +197,10 @@ class Message(TimeStampedModel):
     def body(self):
         return self.template.content.format(**self.appointment.get_data())
 
+    def get_voice_url(self):
+        return 'http://mcm.komadori.xyz{}'.format(
+            reverse('twilio-voice-detail', args=[self.id]))
+
     def send(self):
         if self.template.message_type == 'text':
             body = self.template.content.format(**self.appointment.get_data())
@@ -362,9 +367,19 @@ class Appointment(models.Model):
         # TODO incomplete. need to aggregate time.time__lt=self.appointment_date.time()
         if datetime is None:
             datetime = timezone.now()
-        dday_timedelta =  datetime - self.appointment_date
-        return self.protocol.templates.filter(
-            daydelta__gt=dday_timedelta).order_by('daydelta').first()
+        # dday_timedelta =  datetime - self.appointment_date + 1
+        dday_daydelta = (
+            timezone.localtime(timezone.now()).date()
+            - timezone.localtime(a.appointment_date).date()
+        )
+        if dday_daydelta.days == 0:
+            return self.protocol.templates.filter(
+                daydelta__gte=dday_daydelta,
+                time__gte=self.appointment_date.time()
+            ).order_by('daydelta', 'time').first()
+        else:
+            return self.protocol.templates.filter(
+                daydelta__gte=dday_daydelta).order_by('daydelta', 'time').first()
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
@@ -379,6 +394,7 @@ class Appointment(models.Model):
 
     def schedule_next_message(self):
         template = self.get_next_template()
+        logger.info("found template {} for {}".format(template, self.__str__))
         if template:
             message, created = self.messages.get_or_create(
                 template=template)

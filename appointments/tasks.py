@@ -61,16 +61,26 @@ def deliver_message(appointment_message_id):
     #     logger.info("skipping message")
     #     pass
     # else:
-    logger.info("sending message")
-    message = client.messages.create(
-        body=message_template.content.format(**appointment.get_data()),
-        to=appointment_message.recipient.patient_phone,
-        from_=settings.TWILIO_NUMBER,
-        # Add callback to the thing
-    )
-    appointment_message.twilio_status = 'delivered'
-    appointment_message.save()
-    logger.info(message.sid)
+    if message_template.message_type == 'text':
+        logger.info("sending sms message")
+        message = client.messages.create(
+            body=message_template.content.format(**appointment.get_data()),
+            to=appointment_message.recipient.patient_phone,
+            from_=settings.TWILIO_NUMBER,
+            # Add callback to the thing
+        )
+        appointment_message.twilio_status = 'delivered'
+        appointment_message.save()
+        logger.info(message.sid)
+    elif message_template.message_type == 'call':
+        logger.info("sending voice call request")
+        message = client.calls.create(
+            url=appointment_message.get_voice_url(),
+            to=appointment_message.recipient.patient_phone,
+            from_=settings.TWILIO_NUMBER)
+        appointment_message.twilio_status = 'delivered'
+        appointment_message.save()
+        logger.info(message.sid)
     # TODO set a field in appointment_message as id from twilio
     appointment.schedule_next_message()
     # next_message = appointment.get_next_template()

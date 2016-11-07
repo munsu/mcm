@@ -197,3 +197,15 @@ def twilio_reply(request):
     resp = twilio.twiml.Response()
     resp.message(msg="OK", sender=settings.TWILIO_NUMBER)
     return HttpResponse(resp)
+
+
+def twilio_voice(request, appointment_message_id=None):
+    try:
+        message = Message.objects.get(id=appointment_message_id)
+        text = message.body
+    except Message.DoesNotExist:
+        text = "Hello"
+
+    resp = twilio.twiml.Response()
+    resp.say(text=text)
+    return HttpResponse(resp)
