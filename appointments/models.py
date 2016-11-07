@@ -370,7 +370,7 @@ class Appointment(models.Model):
         # dday_timedelta =  datetime - self.appointment_date + 1
         dday_daydelta = (
             timezone.localtime(timezone.now()).date()
-            - timezone.localtime(a.appointment_date).date()
+            - timezone.localtime(self.appointment_date).date()
         )
         if dday_daydelta.days == 0:
             return self.protocol.templates.filter(
