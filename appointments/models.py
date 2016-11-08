@@ -53,6 +53,10 @@ class UserProfile(models.Model):
 class Client(models.Model):
     """
     For multi tenancy
+    timezone
+    yyyy-mm-dd hh:mm am/pm
+    nov, dd, 2016
+    TODO datetime_format
     """
     name = models.CharField(max_length=255)
     active = models.BooleanField(default=True)
@@ -411,7 +415,7 @@ class Appointment(models.Model):
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
             self.scheduled_room,
-            self.appointment_date,
+            timezone.localtime(self.appointment_date),
             self.patient.id,
             self.appointment_confirm_status)
 

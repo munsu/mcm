@@ -19,6 +19,12 @@ class AppointmentInline(admin.StackedInline):
 
 
 class PatientAdmin(admin.ModelAdmin):
+    """
+    display details.
+    """
+    list_display = (
+        '__str__', 'patient_home_phone', 'patient_mobile_phone', 'patient_email_address'
+    )
     inlines = [
         AppointmentInline,
     ]
