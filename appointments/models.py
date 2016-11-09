@@ -377,13 +377,22 @@ class Appointment(models.Model):
             - timezone.localtime(self.appointment_date).date()
         )
         if dday_daydelta.days == 0:
-            return self.protocol.templates.filter(
-                daydelta__gte=dday_daydelta,
-                time__gte=self.appointment_date.time()
-            ).order_by('daydelta', 'time').first()
+            return (
+                self.protocol.templates
+                .filter(daydelta__gte=dday_daydelta,
+                        time__gte=self.appointment_date.time())
+                .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                .order_by('daydelta', 'time')
+                .first()
+            )
         else:
-            return self.protocol.templates.filter(
-                daydelta__gte=dday_daydelta).order_by('daydelta', 'time').first()
+            return (
+                self.protocol.templates
+                .filter(daydelta__gte=dday_daydelta)
+                .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                .order_by('daydelta', 'time')
+                .first()
+            )
 
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
