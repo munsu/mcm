@@ -239,7 +239,7 @@ class Message(TimeStampedModel):
         }
         if self.template.message_type == 'text':
             logger.info("sending sms message")
-            data['body'] = self.template.content.format(**self.body)
+            data['body'] = self.body
             try:
                 self.message_sid = tw_send_sms(**data)
                 self.twilio_status = 'delivered'
@@ -515,7 +515,7 @@ class Patient(models.Model):
                                          self.patient_home_phone)
         self.patient_mobile_phone = filter(lambda x: x.isdigit(),
                                            self.patient_mobile_phone)
-        super(Patient, self).save(**args, **kwargs)
+        super(Patient, self).save(*args, **kwargs)
 
     def __str__(self):
         return "{} - {}, {}".format(
