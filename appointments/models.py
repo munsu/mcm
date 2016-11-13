@@ -511,9 +511,10 @@ class Patient(models.Model):
 #     # strikes and stuff
 
     def save(self, *args, **kwargs):
-        self.patient_home_phone = filter(lambda x: x.isdigit(),
+        # TODO Will fail if number has + in the middle.
+        self.patient_home_phone = filter(lambda x: x.isdigit() or x is '+',
                                          self.patient_home_phone)
-        self.patient_mobile_phone = filter(lambda x: x.isdigit(),
+        self.patient_mobile_phone = filter(lambda x: x.isdigit() or x is '+',
                                            self.patient_mobile_phone)
         super(Patient, self).save(*args, **kwargs)
 
