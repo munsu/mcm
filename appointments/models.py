@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import logging
+import pytz
 
 from django.db import models
 from django.forms.models import model_to_dict
@@ -41,6 +42,7 @@ patient_mobile_phone    patient cell or mobile phone number desired string  pati
 patient_email_address   patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
 """
 
+
 # Create your models here.
 class UserProfile(models.Model):
     """
@@ -57,10 +59,28 @@ class Client(models.Model):
     yyyy-mm-dd hh:mm am/pm
     nov, dd, 2016
     TODO datetime_format
+    YYYY-MM-DDTHH:MM:SS+HH:MM
     """
+    TIMEZONE_CHOICES = zip(pytz.all_timezones, pytz.all_timezones)
+    DATETIME_FORMAT_CHOICES = (
+        # '%d/%m/%y',
+        ('%m/%d/%Y %I:%M%p', '10/25/2006 02:30PM'),
+        ('%Y-%m-%d %H:%M', '2006-10-25 14:30'),
+        ('%Y-%m-%d', '2006-10-25'),
+        ('%m/%d/%Y %H:%M', '10/25/2006 14:30'),
+        ('%m/%d/%Y', '10/25/2006'),
+        ('%m/%d/%y %H:%M', '10/25/06 14:30'),
+        ('%m/%d/%y', '10/25/06'),
+    )
     name = models.CharField(max_length=255)
     active = models.BooleanField(default=True)
-
+    datetime_format = models.CharField(
+        max_length=32, default='%m/%d/%Y %I:%M%p',choices=DATETIME_FORMAT_CHOICES)
+    timezone = models.CharField(
+        max_length=64, default='America/New_York', choices=TIMEZONE_CHOICES)
+    address = models.TextField()
+    # we want this to unique to each client eventually.
+    twilio_number = models.CharField(max_length=16, default='+15702343621')
 
     def __str__(self):
         return self.name
@@ -115,6 +135,7 @@ class MessageTemplate(models.Model):
 
     def __str__(self):
         return "{} - {}".format(self.message_type, self.content)
+
 
 class MessageAction(models.Model):
     ACTION_CHOICES = (
@@ -181,6 +202,10 @@ class Message(TimeStampedModel):
         max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
     twilio_error = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_ERROR_CHOICES)
+    message_sid =  models.CharField(
+        max_length=64, blank=True, null=True)
+    task_id = models.CharField(
+        max_length=64, blank= True, null=True)
 
     class Meta:
         ordering = ['created', ]
@@ -206,10 +231,34 @@ class Message(TimeStampedModel):
             reverse('twilio-voice-detail', args=[self.id]))
 
     def send(self):
+        """Should not be called directly. Will not schedule the next message."""
+        from .tasks import tw_send_call, tw_send_sms
+        data = {
+            'to': self.recipient.patient_phone,  # TODO should change for call
+            'from_': self.appointment.client.twilio_number,
+        }
         if self.template.message_type == 'text':
-            body = self.template.content.format(**self.appointment.get_data())
+            logger.info("sending sms message")
+            data['body'] = self.template.content.format(**self.body)
+            try:
+                self.message_sid = tw_send_sms(**data)
+                self.twilio_status = 'delivered'
+            except Exception, e:
+                logger.warning(e)
+            self.save()
+        elif self.template.message_type == 'call':
+            logger.info("sending voice call request")
+            try:
+                data['url'] = self.get_voice_url()
+                self.message_sid = tw_send_call(**data)
+                self.twilio_status = 'delivered'
+            except Exception, e:
+                logger.warning(e)
+            self.save()
         else:
-            raise Exception("Email/Call not yet allowed.")
+            raise Exception("Email not yet allowed.")
+
+        return self.message_sid
 
     def check_for_action(self, body):
         # TODO parse body relative to message.template.actions
@@ -225,6 +274,7 @@ class Message(TimeStampedModel):
     def __str__(self):
         return "{}: {}".format(
             self.scheduled_delivery_datetime, self.template)
+
 
 class Reply(TimeStampedModel):
     """
@@ -339,7 +389,21 @@ class Appointment(models.Model):
     objects = AppointmentManager()
 
     def get_data(self):
-        return model_to_dict(self)
+        # TODO just edit the field's to_repr method
+        datetime_fields = (
+            'appointment_date',
+            'appointment_scheduled_dt',
+            'appointment_confirm_date'
+        )
+        data = model_to_dict(self)
+        for field in datetime_fields:
+            try:
+                data[field] = data[field].strftime(self.client.datetime_format)
+            except AttributeError:
+                pass
+        data['patient'] = model_to_dict(self.patient)
+        data['client'] = model_to_dict(self.client)
+        return data
 
     def should_receive_messages(self):
         """TODO set this on the patient level."""
@@ -368,10 +432,10 @@ class Appointment(models.Model):
         return Protocol.objects.filter(clients=self.client).first()
 
     def get_next_template(self, datetime=None):
-        # TODO incomplete. need to aggregate time.time__lt=self.appointment_date.time()
         if datetime is None:
             datetime = timezone.now()
-        # dday_timedelta =  datetime - self.appointment_date + 1
+        # we have to convert this to localtime first else the daydelta becomes a pain
+        # to compute
         dday_daydelta = (
             timezone.localtime(timezone.now()).date()
             - timezone.localtime(self.appointment_date).date()
@@ -397,15 +461,17 @@ class Appointment(models.Model):
     def save(self, *args, **kwargs):
         self.protocol = self.find_protocol()
         if timezone.is_naive(self.appointment_date):
-            self.appointment_date = timezone.make_aware(self.appointment_date)
+            self.appointment_date = timezone.make_aware(
+                self.appointment_date, timezone=self.client.timezone)
         if timezone.is_naive(self.appointment_scheduled_dt):
             self.appointment_scheduled_dt = timezone.make_aware(
-                self.appointment_scheduled_dt)
+                self.appointment_scheduled_dt, timezone=self.client.timezone)
         super(Appointment, self).save(*args, **kwargs)
         # TODO check the case for adjusted appointment dates.
         self.schedule_next_message()
 
     def schedule_next_message(self):
+        # TODO revoke the task if it hasn't been sent yet.
         template = self.get_next_template()
         logger.info("found template {} for {}".format(template, self.__str__))
         if template:
@@ -418,8 +484,12 @@ class Appointment(models.Model):
                 from .tasks import deliver_message
                 logger.info("scheduling message for {} to be sent at {}".format(
                     self.__str__, message.scheduled_delivery_datetime))
-                return deliver_message.apply_async(
+                task_id = deliver_message.apply_async(
                     (message.id,), eta=message.scheduled_delivery_datetime)
+                message.task_id = task_id
+                message.save()
+                return task_id
+        return None
 
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
@@ -439,6 +509,13 @@ class Patient(models.Model):
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
 #     # strikes and stuff
+
+    def save(self, *args, **kwargs):
+        self.patient_home_phone = filter(lambda x: x.isdigit(),
+                                         self.patient_home_phone)
+        self.patient_mobile_phone = filter(lambda x: x.isdigit(),
+                                           self.patient_mobile_phone)
+        super(Patient, self).save(**args, **kwargs)
 
     def __str__(self):
         return "{} - {}, {}".format(

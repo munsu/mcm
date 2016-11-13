@@ -35,6 +35,20 @@ def send_sms(body, to='+16095322026'):
 
 
 @shared_task
+def tw_send_sms(**kwargs):
+    """Helper for sending SMS. Returns SID."""
+    message = client.messages.create(**kwargs)
+    return message.sid
+
+
+@shared_task
+def tw_send_call(**kwargs):
+    """Helper for calling. Returns SID."""
+    call = client.calls.create(**kwargs)
+    return call.sid
+
+
+@shared_task
 def deliver_message(appointment_message_id):
     """
     first one is called with eta
@@ -43,17 +57,12 @@ def deliver_message(appointment_message_id):
     try:
         appointment_message = Message.objects.get(id=appointment_message_id)
         appointment = appointment_message.appointment
-        message_template = appointment_message.template
-        # appointment = Appointment.objects.get(id=appointment_id)
-        # message_template = MessageTemplate.objects.get(id=message_template_id)
     except (Appointment.DoesNotExist,
-            MessageTemplate.DoesNotExist,
             Message.DoesNotExist):
-        return
+        return {'status': 'Message or Appointment deleted.'}
     if not appointment.should_receive_messages():
         # stop
-        return
-    # appointment_message = appointment.messages.create(template=message_template)
+        return {'status': 'Patient cancelled.', 'next': None}
     # check time
     logger.info("times:\t{}\t{}".format(timezone.now(), appointment_message.scheduled_delivery_datetime))
     # if timezone.now() < appointment_message.scheduled_delivery_datetime:
@@ -61,39 +70,6 @@ def deliver_message(appointment_message_id):
     #     logger.info("skipping message")
     #     pass
     # else:
-    if message_template.message_type == 'text':
-        logger.info("sending sms message")
-        message = client.messages.create(
-            body=message_template.content.format(**appointment.get_data()),
-            to=appointment_message.recipient.patient_phone,
-            from_=settings.TWILIO_NUMBER,
-            # Add callback to the thing
-        )
-        appointment_message.twilio_status = 'delivered'
-        appointment_message.save()
-        logger.info(message.sid)
-    elif message_template.message_type == 'call':
-        logger.info("sending voice call request")
-        message = client.calls.create(
-            url=appointment_message.get_voice_url(),
-            to=appointment_message.recipient.patient_phone,
-            from_=settings.TWILIO_NUMBER)
-        appointment_message.twilio_status = 'delivered'
-        appointment_message.save()
-        logger.info(message.sid)
-    # TODO set a field in appointment_message as id from twilio
-    appointment.schedule_next_message()
-    # next_message = appointment.get_next_template()
-    # deliver_message.apply_async((appointment_id, next_message.id), eta=TODOtime)
-    pass
-    """
-    
-        appointment_time = arrow.get(self.time, self.time_zone.zone)
-        reminder_time = appointment_time.replace(minutes=-settings.REMINDER_TIME)
-
-        # Schedule the Celery task
-        from .tasks import send_sms_reminder
-        result = send_sms_reminder.apply_async((self.pk,), eta=reminder_time)
-
-        return result.id
-    """
+    send_status = appointment_message.send()
+    next_status = appointment.schedule_next_message()
+    return {'status': {'message_sid': send_status}, 'next': {'task_id': next_status}}
