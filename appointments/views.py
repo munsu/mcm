@@ -194,7 +194,7 @@ def twilio_reply(request):
         m = Message.objects.filter(
             appointment__patient__patient_mobile_phone=from_number,  #[u'+13473460667'] TODO
             twilio_status='delivered').last()
-        m.reply_set.create(content=body)
+        r = m.reply_set.create(content=body)
     except Exception as e:
         logger.info(str(e))
     resp = twilio.twiml.Response()

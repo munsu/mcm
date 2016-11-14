@@ -231,7 +231,10 @@ class Message(TimeStampedModel):
             reverse('twilio-voice-detail', args=[self.id]))
 
     def send(self):
-        """Should not be called directly. Will not schedule the next message."""
+        """
+        Should not be called directly. Will not schedule the next message.
+        TODO create a record of the actual sent message
+        """
         from .tasks import tw_send_call, tw_send_sms
         data = {
             'to': self.recipient.patient_phone,  # TODO should change for call
@@ -261,7 +264,6 @@ class Message(TimeStampedModel):
         return self.message_sid
 
     def check_for_action(self, body):
-        # TODO parse body relative to message.template.actions
         if self.template.message_type == 'text':
             for ma in self.template.actions.all():
                 print ma
@@ -288,18 +290,19 @@ class Reply(TimeStampedModel):
     """
     message = models.ForeignKey('Message', models.CASCADE)
     content = models.TextField()
+    message_action = models.ForeignKey('MessageAction', models.SET_NULL, null=True)
 
     def save(self, *args, **kwargs):
+        self.message_action = self.message.check_for_action(self.content)
         super(Reply, self).save(*args, **kwargs)
-        action = self.message.check_for_action(self.content)
-        logger.info("<reply save>\tReply:{}\tAction:{}".format(self.content, action))
+        logger.info("<reply save>\tReply:{}\tAction:{}".format(self.content, self.message_action.action))
         if action:
             try:
-                handler = getattr(self.message.appointment, action)
+                handler = getattr(self.message.appointment, self.message_action.action)
                 handler(message_id=self.message.id)
                 # TODO call handler. somehow pass/record message.id
             except AttributeError:
-                raise NotImplementedError("Missing appointment method: {}".format(action))
+                raise NotImplementedError("Missing appointment method: {}".format(self.message_action.action))
         # TODO action loop
 
     class Meta:
