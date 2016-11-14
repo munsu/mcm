@@ -216,7 +216,7 @@ class Message(TimeStampedModel):
 
     @property
     def scheduled_delivery_datetime(self):
-        ddate = self.appointment.appointment_date + self.template.daydelta
+        ddate = self.appointment.local_appointment_date + self.template.daydelta
         dtime = self.template.time
         return ddate.replace(
             hour=dtime.hour, minute=dtime.minute,
@@ -388,6 +388,14 @@ class Appointment(models.Model):
 
     objects = AppointmentManager()
 
+    @property
+    def timezone(self):
+        return pytz.timezone(self.client.timezone)
+
+    @property
+    def local_appointment_date(self):
+        return timezone.localtime(self.appointment_date, self.timezone)
+
     def get_data(self):
         # TODO just edit the field's to_repr method
         datetime_fields = (
@@ -398,8 +406,12 @@ class Appointment(models.Model):
         data = model_to_dict(self)
         for field in datetime_fields:
             try:
-                data[field] = data[field].strftime(self.client.datetime_format)
-            except AttributeError:
+                data[field] = (
+                    timezone
+                    .localtime(data[field], self.timezone)
+                    .strftime(self.client.datetime_format)
+                )
+            except Exception:
                 pass
         data['patient'] = model_to_dict(self.patient)
         data['client'] = model_to_dict(self.client)
@@ -437,14 +449,14 @@ class Appointment(models.Model):
         # we have to convert this to localtime first else the daydelta becomes a pain
         # to compute
         dday_daydelta = (
-            timezone.localtime(timezone.now()).date()
-            - timezone.localtime(self.appointment_date).date()
+            timezone.localtime(timezone.now(), self.timezone).date()
+            - self.local_appointment_date.date()
         )
         if dday_daydelta.days == 0:
             return (
                 self.protocol.templates
                 .filter(daydelta__gte=dday_daydelta,
-                        time__gte=self.appointment_date.time())
+                        time__gte=self.local_appointment_date.time())
                 .exclude(id__in=self.messages.values_list('template_id', flat=True))
                 .order_by('daydelta', 'time')
                 .first()
@@ -462,10 +474,10 @@ class Appointment(models.Model):
         self.protocol = self.find_protocol()
         if timezone.is_naive(self.appointment_date):
             self.appointment_date = timezone.make_aware(
-                self.appointment_date, timezone=self.client.timezone)
+                self.appointment_date, timezone=self.timezone)
         if timezone.is_naive(self.appointment_scheduled_dt):
             self.appointment_scheduled_dt = timezone.make_aware(
-                self.appointment_scheduled_dt, timezone=self.client.timezone)
+                self.appointment_scheduled_dt, timezone=self.timezone)
         super(Appointment, self).save(*args, **kwargs)
         # TODO check the case for adjusted appointment dates.
         self.schedule_next_message()
@@ -494,7 +506,7 @@ class Appointment(models.Model):
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
             self.scheduled_room,
-            timezone.localtime(self.appointment_date),
+            self.local_appointment_date,
             self.patient.id,
             self.appointment_confirm_status)
 
