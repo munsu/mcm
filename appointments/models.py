@@ -3,7 +3,9 @@ from __future__ import unicode_literals
 import logging
 import pytz
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
+from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
@@ -103,14 +105,84 @@ class Facility(models.Model):
         return self.name
 
 
+class Constraint(models.Model):
+    LOOKUP_TYPE_CHOICES = (
+        ('exact', 'exact'),
+        ('iexact', 'Case-insensitive exact'),
+        ('contains', 'contains'),
+        ('icontains', 'Case-insensitive contains')
+    )
+    FIELD_CHOICES = (
+        ('procedure_description', 'procedure_description'),
+        ('appointment_scheduled_service', 'appointment_scheduled_service'),
+    )
+    protocol = models.ForeignKey(
+        'Protocol', models.CASCADE, related_name='constraints')
+    field = models.CharField(max_length=32, choices=FIELD_CHOICES)
+    lookup_type = models.CharField(max_length=32, choices=LOOKUP_TYPE_CHOICES)
+    value = models.CharField(max_length=255)
+
+    def as_q(self):
+        query = {'{}__{}'.format(self.field, self.lookup_type): self.value}
+        return Q(**query)
+
+
 class Protocol(models.Model):
     """
     has message templates, message actions
+    RULE:
+    {
+        "and": {
+            "key__type": "value",
+            "or": {
+                "key__type": "value"
+            }
+        }
+    }
     """
     name = models.CharField(max_length=64)
-    clients = models.ManyToManyField('Client')
+    clients = models.ManyToManyField('Client', related_name='protocols')
     priority = models.IntegerField()
-    rule = models.CharField(max_length=255)
+    # rule = JSONField()
+
+    def constraint_query(self):
+        q = Q()
+        for c in self.constraints.all():
+            q &= c.as_q()
+        return q
+
+    def execute_rule(self, model, fields, types, values, operator):
+        """
+         Takes arguments & constructs Qs for filter()
+         We make sure we don't construct empty filters that would
+            return too many results
+         We return an empty dict if we have no filters so we can
+            still return an empty response from the view
+        """
+        queries = []
+        for (f, t, v) in zip(fields, types, values):
+            # We only want to build a Q with a value
+            if v != "":
+                kwargs = {str('%s__%s' % (f,t)) : str('%s' % v)}
+                queries.append(Q(**kwargs))
+        
+        # Make sure we have a list of filters
+        if len(queries) > 0:
+            q = Q()
+            # AND/OR awareness
+            for query in queries:
+                if operator == "and":
+                    q = q & query
+                elif operator == "or":
+                    q = q | query
+                else:
+                    q = None
+            if q:
+                # We have a Q object, return the QuerySet
+                return model.objects.filter(q)
+        else:
+            # Return an empty result
+            return {}
 
     def __str__(self):
         return self.name
@@ -227,6 +299,11 @@ class Message(TimeStampedModel):
         return self.template.content.format(**self.appointment.get_data())
 
     def get_voice_url(self):
+        """
+        1 - confirm
+        2 - cancel -> 1 - reschedule ()
+        0 - repeat
+        """
         return 'http://mcm.komadori.xyz{}'.format(
             reverse('twilio-voice-detail', args=[self.id]))
 
@@ -352,7 +429,8 @@ class Appointment(models.Model):
     )
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
-    protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
+    # protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
+    protocols = models.ManyToManyField('Protocol')
     # TODO choices
     appointment_confirm_status = models.CharField(
         max_length=64,
@@ -442,9 +520,15 @@ class Appointment(models.Model):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
 
-    def find_protocol(self):
-        # TODO base this on rules
-        return Protocol.objects.filter(clients=self.client).first()
+    def find_protocols(self):
+        """
+        For each protocol,
+            check if appointment fits.
+        """
+        for protocol in self.client.protocols.all():
+            if Appointment.objects.filter(protocol.constraint_query(), id=self.id).exists():
+                print "found protocol for {}: {}".format(self.id, protocol.name)
+                self.protocols.add(protocol)
 
     def get_next_template(self, datetime=None):
         if datetime is None:
@@ -457,8 +541,9 @@ class Appointment(models.Model):
         )
         if dday_daydelta.days == 0:
             return (
-                self.protocol.templates
-                .filter(daydelta__gte=dday_daydelta,
+                MessageTemplate.objects
+                .filter(protocol__in=self.protocols.all(),
+                        daydelta__gte=dday_daydelta,
                         time__gte=self.local_appointment_date.time())
                 .exclude(id__in=self.messages.values_list('template_id', flat=True))
                 .order_by('daydelta', 'time')
@@ -466,15 +551,15 @@ class Appointment(models.Model):
             )
         else:
             return (
-                self.protocol.templates
-                .filter(daydelta__gte=dday_daydelta)
+                MessageTemplate.objects
+                .filter(protocol__in=self.protocols.all(),
+                        daydelta__gte=dday_daydelta)
                 .exclude(id__in=self.messages.values_list('template_id', flat=True))
                 .order_by('daydelta', 'time')
                 .first()
             )
 
     def save(self, *args, **kwargs):
-        self.protocol = self.find_protocol()
         if timezone.is_naive(self.appointment_date):
             self.appointment_date = timezone.make_aware(
                 self.appointment_date, timezone=self.timezone)
@@ -482,6 +567,7 @@ class Appointment(models.Model):
             self.appointment_scheduled_dt = timezone.make_aware(
                 self.appointment_scheduled_dt, timezone=self.timezone)
         super(Appointment, self).save(*args, **kwargs)
+        self.find_protocols()
         # TODO check the case for adjusted appointment dates.
         self.schedule_next_message()
 

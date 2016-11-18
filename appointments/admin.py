@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message,
-    MessageAction, Reply
+    MessageAction, Reply, Constraint
 )
 
 
@@ -29,8 +29,10 @@ class PatientAdmin(admin.ModelAdmin):
         AppointmentInline,
     ]
 
+
 class AppointmentAdmin(admin.ModelAdmin):
     pass
+
 
 class MessageActionInline(admin.StackedInline):
     model = MessageAction
@@ -48,9 +50,14 @@ class MessageTemplateInline(admin.StackedInline):
     extra = 1
 
 
+class ConstraintInline(admin.StackedInline):
+    model = Constraint
+    extra = 1
+
+
 class ProtocolAdmin(admin.ModelAdmin):
     inlines = [
-        MessageTemplateInline
+        ConstraintInline, MessageTemplateInline
     ]
 
 

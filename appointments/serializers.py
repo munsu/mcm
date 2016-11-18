@@ -4,7 +4,8 @@ from rest_framework import serializers
 from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
 from .models import (
-    Appointment, Patient, Facility, Client, Protocol, MessageTemplate, MessageAction
+    Appointment, Patient, Facility, Client, Protocol, MessageTemplate, MessageAction,
+    Constraint
 )
 
 
@@ -170,15 +171,25 @@ class MessageTemplateSerializer(serializers.ModelSerializer):
             MessageAction.objects.create(template=template, **action_data)
         return template
 
+class ConstraintSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Constraint
+        fields = (
+            'field',
+            'lookup_type',
+            'value'
+        )
+
 
 class ProtocolSerializer(serializers.ModelSerializer):
     templates = MessageTemplateSerializer(many=True)
+    constraints = ConstraintSerializer(many=True)
 
     class Meta:
         model = Protocol
         depth = 1
         fields = (
-            'id', 'name', 'priority', 'rule', 'templates'
+            'id', 'name', 'priority', 'constraints', 'templates'
         )
         # fields = ('id', 'account_name', 'users', 'created')
 

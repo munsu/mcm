@@ -184,6 +184,8 @@ class ManageProtocolsView(TemplateView):
 
 def twilio_reply(request):
     """TODO specific to client twilio number"""
+    sender = settings.TWILIO_NUMBER
+    ack_msg = "OK"  # TODO direct to doctor's office
     try:
         logger.info("<twilio_reply>:{}".format(request.GET))
         from_number = request.GET.get('From', None)
@@ -192,8 +194,10 @@ def twilio_reply(request):
         body = request.GET.get('Body', None)
         to = request.GET.get('To', None)
         m = Message.objects.filter(
-            appointment__patient__patient_mobile_phone=from_number,  #[u'+13473460667'] TODO
-            twilio_status='delivered').last()
+            appointment__patient__patient_mobile_phone=from_number,
+            twilio_status='delivered',
+            ).last()
+        c = m.appointment.client
         r = m.reply_set.create(content=body)
     except Exception as e:
         logger.info(str(e))

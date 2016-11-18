@@ -44,10 +44,31 @@
                   title: 'Priority',
                   required: true
                 },
-                rule: {
-                  type: 'string',
-                  title: 'Rule',
-                  required: true
+                constraints: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    title: 'Constraint',
+                    properties: {
+                      field: {
+                        type: 'string',
+                        title: 'Field',
+                        enum: ['appointment_scheduled_service', 'procedure_description'],
+                        required: true
+                      },
+                      lookup_type: {
+                        type: 'string',
+                        title: 'Lookup Type',
+                        enum: ['exact', 'iexact', 'contains', 'icontains'],
+                        required: true
+                      },
+                      value: {
+                        type: 'string',
+                        title: 'Value',
+                        required: true
+                      }
+                    }
+                  }
                 },
                 templates: {
                   type: 'array',
@@ -112,6 +133,9 @@
               fields: {
                 name: {
                   type: "textarea"
+                },
+                constraints: {
+                  toolbarSticky: true,
                 },
                 templates: {
                   toolbarSticky: true,
