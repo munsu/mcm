@@ -40,6 +40,12 @@ class MessageActionInline(admin.StackedInline):
 
 
 class MessageTemplateAdmin(admin.ModelAdmin):
+    list_display = (
+        'protocol',
+        'message_type',
+        'daydelta',
+        'time'
+    )
     inlines = [
         MessageActionInline
     ]
