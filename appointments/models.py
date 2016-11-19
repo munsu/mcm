@@ -613,11 +613,20 @@ class Patient(models.Model):
 
     def save(self, *args, **kwargs):
         # TODO Will fail if number has + in the middle.
-        self.patient_home_phone = filter(lambda x: x.isdigit() or x == '+',
-                                         self.patient_home_phone)
-        self.patient_mobile_phone = filter(lambda x: x.isdigit() or x == '+',
-                                           self.patient_mobile_phone)
+        self.patient_home_phone = self.number_to_e164_format(
+            filter(lambda x: x.isdigit() or x == '+',
+                   self.patient_home_phone))
+        self.patient_mobile_phone = self.number_to_e164_format(
+            filter(lambda x: x.isdigit() or x == '+',
+                   self.patient_mobile_phone))
         super(Patient, self).save(*args, **kwargs)
+
+    def number_to_e164_format(self, number):
+        # TODO dynamic phone number
+        if number.startswith('+'):
+            return number
+        else:
+            return '+1{}'.format(number)
 
     def __str__(self):
         return "{} - {}, {}".format(

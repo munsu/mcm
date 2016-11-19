@@ -189,8 +189,6 @@ def twilio_reply(request):
     try:
         logger.info("<twilio_reply>:{}".format(request.GET))
         from_number = request.GET.get('From', None)
-        if from_number.startswith('+1'):
-            from_number = from_number[2:]
         body = request.GET.get('Body', None)
         to = request.GET.get('To', None)
         m = Message.objects.filter(
