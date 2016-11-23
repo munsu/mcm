@@ -229,6 +229,9 @@ class MessageAction(models.Model):
     keyword = models.CharField(max_length=160)
     action = models.CharField(max_length=255, choices=ACTION_CHOICES)
 
+    def __str__(self):
+        return "{}: {}".format(self.keyword, self.action)
+
 
 class Message(TimeStampedModel):
     """
@@ -356,10 +359,8 @@ class Message(TimeStampedModel):
     def check_for_action(self, body):
         if self.template.message_type == 'text':
             for ma in self.template.actions.all():
-                print ma
-                if ma.keyword in body:
-                    print ma.action
-                    return ma.action
+                if ma.keyword.lower() == body.lower():
+                    return ma
         else:
             raise Exception("Email/Call not yet parsed.")
 
@@ -385,8 +386,8 @@ class Reply(TimeStampedModel):
     def save(self, *args, **kwargs):
         self.message_action = self.message.check_for_action(self.content)
         super(Reply, self).save(*args, **kwargs)
-        logger.info("<reply save>\tReply:{}\tAction:{}".format(self.content, self.message_action.action))
-        if action:
+        logger.info("<reply save>\tReply:{}\tAction:{}".format(self.content, self.message_action))
+        if self.message_action:
             try:
                 handler = getattr(self.message.appointment, self.message_action.action)
                 handler(message_id=self.message.id)
