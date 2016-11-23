@@ -26,7 +26,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from .forms import AppointmentsUploadForm
-from .models import Appointment, Protocol, Message
+from .models import Appointment, Protocol, Message, MessageAction
 from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
 
@@ -178,6 +178,7 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
         except (TypeError, KeyError):
             return {}
 
+
 class ManageProtocolsView(TemplateView):
     template_name = 'appointments/protocols.html'
 
@@ -190,17 +191,35 @@ def twilio_reply(request):
         logger.info("<twilio_reply>:{}".format(request.GET))
         from_number = request.GET.get('From', None)
         body = request.GET.get('Body', None)
-        to = request.GET.get('To', None)
+        to = request.GET.get('To', None)  # TODO integrate this
         m = Message.objects.filter(
             appointment__patient__patient_mobile_phone=from_number,
             twilio_status='delivered',
             ).last()
         c = m.appointment.client
         r = m.reply_set.create(content=body)
+        if r.message_action is None:
+            # not valid
+            logger.info("resending tail:{}".format(m.tail))
+            ack_msg = m.tail
+        elif r.message_action.action == 'confirm':
+            ack_msg = "Thank you for confirming the appointment."
+        elif r.message_action.action == 'reschedule':
+            ack_msg = ("Doctor's Office\n"
+                       "718-114-2200\n"
+                       "Weekdays 8:00am - 7:00pm\n"
+                       "Weekends 8:00am - 2:00pm")
+        elif r.message_action.action == 'cancel':
+            ack_msg = ("We're sorry to hear that - We can connect you to "
+                       "our office and reschedule your appointment at\n"
+                       "718-114-2200\n"
+                       "Weekdays 8:00am - 7:00pm\n"
+                       "Weekends 8:00am - 2:00pm")
+
     except Exception as e:
         logger.info(str(e))
     resp = twilio.twiml.Response()
-    resp.message(msg="OK", sender=settings.TWILIO_NUMBER)
+    resp.message(msg=ack_msg, sender=settings.TWILIO_NUMBER)
     return HttpResponse(resp)
 
 

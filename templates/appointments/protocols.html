@@ -88,6 +88,11 @@
                         title: 'Content',
                         required: true
                       },
+                      content_tail: {
+                        type: 'string',
+                        title: 'Content Tail',
+                        required: false
+                      },
                       daydelta: {
                         type: 'string',
                         title: 'Day Delta',
@@ -143,7 +148,11 @@
                     fields: {
                       content: {
                         type: "textarea",
-                        rows: 5
+                        rows: 3
+                      },
+                      content_tail: {
+                        type: "textarea",
+                        rows: 3
                       },
                       actions: {
                         toolbarSticky: true

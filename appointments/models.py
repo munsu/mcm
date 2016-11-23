@@ -165,7 +165,7 @@ class Protocol(models.Model):
             if v != "":
                 kwargs = {str('%s__%s' % (f,t)) : str('%s' % v)}
                 queries.append(Q(**kwargs))
-        
+
         # Make sure we have a list of filters
         if len(queries) > 0:
             q = Q()
@@ -201,12 +201,21 @@ class MessageTemplate(models.Model):
     message_type = models.CharField(max_length=255, choices=MESSAGE_TYPES)  # TODO
     # sample content: "{date}\n{content}"
     content = models.TextField()  # sms
+    content_tail = models.TextField(blank=True)
     daydelta = models.DurationField()  # TODO order is separate field
     time = models.TimeField()  # TODO widget for this should be choices
     protocol = models.ForeignKey('Protocol', models.CASCADE, related_name='templates')
 
+    @property
+    def message_body(self):
+        return "{}\n{}".format(self.content.strip(), self.content_tail.strip())
+
+    @property
+    def message_tail(self):
+        return self.content_tail.strip()
+
     def __str__(self):
-        return "{} - {}".format(self.message_type, self.content)
+        return "{} - {} {} - {}".format(self.message_type, self.daydelta, self.time, self.protocol)
 
 
 class MessageAction(models.Model):
@@ -296,7 +305,11 @@ class Message(TimeStampedModel):
 
     @property
     def body(self):
-        return self.template.content.format(**self.appointment.get_data())
+        return self.template.message_body.format(**self.appointment.get_data())
+
+    @property
+    def tail(self):
+        return self.template.message_tail.format(**self.appointment.get_data())
 
     def get_voice_url(self):
         """
