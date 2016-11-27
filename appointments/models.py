@@ -515,6 +515,7 @@ class Appointment(models.Model):
         data['patient'] = model_to_dict(self.patient)
         data['client'] = model_to_dict(self.client)
         data['appointment_facility'] = model_to_dict(self.appointment_facility)
+        data['protocols'] = list(self.protocols.values_list('name', flat=True))
         return flatten_dict(data)
 
     def should_receive_messages(self):
