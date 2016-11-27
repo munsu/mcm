@@ -32,3 +32,10 @@ def t1_to_t8():
         provider_npi_id
     """
     pass
+
+def flatten_dict(dd, separator='__', prefix=''):
+    # from http://stackoverflow.com/a/19647596/2365267
+    return { prefix + separator + k if prefix else k : v
+             for kk, vv in dd.items()
+             for k, v in flatten_dict(vv, separator, kk).items()
+             } if isinstance(dd, dict) else { prefix : dd }

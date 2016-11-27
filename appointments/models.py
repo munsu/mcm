@@ -12,6 +12,9 @@ from django.utils import timezone
 
 from model_utils.models import TimeStampedModel
 
+from .utils import flatten_dict
+
+
 logger = logging.getLogger(__name__)
 """
 APPOINTMENTS FILE LAYOUT
@@ -511,7 +514,8 @@ class Appointment(models.Model):
                 pass
         data['patient'] = model_to_dict(self.patient)
         data['client'] = model_to_dict(self.client)
-        return data
+        data['appointment_facility'] = model_to_dict(self.appointment_facility)
+        return flatten_dict(data)
 
     def should_receive_messages(self):
         """TODO set this on the patient level."""
