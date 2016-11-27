@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message,
-    MessageAction, Reply, Constraint
+    MessageAction, Reply, Constraint, Facility
 )
 
 
@@ -9,8 +9,15 @@ class UserProfileAdmin(admin.ModelAdmin):
     pass
 
 
+class FacilityInline(admin.StackedInline):
+    model = Facility
+    extra = 1
+
+
 class ClientAdmin(admin.ModelAdmin):
-    pass
+    inlines = [
+        FacilityInline,
+    ]
 
 
 class AppointmentInline(admin.StackedInline):

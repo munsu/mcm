@@ -90,7 +90,10 @@
 {% block extrascript %}
   <script type="text/javascript">
     $(document).ready(function(){
-      $('#action-table').DataTable();
+      $('#action-table').DataTable({
+        order: [[2, 'asc']]
+      });
+        // stateSave: true
 
       $.ajax({
         url: "{% url 'appointments:reports:confirm' %}",

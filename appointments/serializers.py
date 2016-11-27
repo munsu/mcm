@@ -72,7 +72,6 @@ class AppointmentSerializer(serializers.Serializer):
     patient_mobile_phone = serializers.CharField()
     patient_email_address = serializers.EmailField()
 
-
     def create(self, validated_data):
         """
         TODO map this to the things
@@ -82,27 +81,30 @@ class AppointmentSerializer(serializers.Serializer):
         patient_fields = [f.name for f in Patient._meta.local_fields]
         # logger.info("PATIENT OB {}".format(Patient._meta.local_fields))
         # logger.info("PATIENT FIELDS {}".format(patient_fields))
-        patient_data = {k: validated_data.get(k) for k in patient_fields if validated_data.get(k)}
-        patient, created = Patient.objects.update_or_create(**patient_data)
-
-        if created:
-            # TODO stats
-            pass
-        else:
-            # TODO update stats
-            pass
+        patient_data = {k: validated_data.get(k)
+                        for k in patient_fields
+                        if validated_data.get(k)}
+        patient, _ = Patient.objects.update_or_create(**patient_data)
+        facility, _ = Facility.objects.get_or_create(
+            client=validated_data.get('client'),
+            name=validated_data.get("appointment_facility"))
 
         appointment_fields = [f.name for f in Appointment._meta.local_fields]
-        appointment_data = {k: validated_data.get(k) for k in appointment_fields if validated_data.get(k)}
+        appointment_data = {k: validated_data.get(k)
+                            for k in appointment_fields
+                            if validated_data.get(k)}
         appointment_data['patient'] = patient
-        # TODO revisit post-demo
-        # appointment_facility = appointment_data.pop('appointment_facility')
-        # try:
-        #     facility = Facility.objects.get(validated_data.get("appointment_facility"))
-        # except Facility.DoesNotExist:
-        #     # TODO
-        #     pass
-        appointment, created = Appointment.objects.update_or_create(**appointment_data)
+        appointment_data['appointment_facility'] = facility
+        # relocate
+        appointment_updatable_fields = [
+            'appointment_date',
+            'appointment_confirm_status',
+            'appointment_status']
+        defaults = {k: appointment_data.pop(k)
+                    for k in appointment_updatable_fields
+                    if appointment_data.get(k)}
+        appointment, created = Appointment.objects.update_or_create(
+            defaults=defaults, **appointment_data)
         if created:
             # fire send sms
             logger.info("Created {} {}".format(appointment, created))
@@ -170,6 +172,7 @@ class MessageTemplateSerializer(serializers.ModelSerializer):
         for action_data in actions_data:
             MessageAction.objects.create(template=template, **action_data)
         return template
+
 
 class ConstraintSerializer(serializers.ModelSerializer):
     class Meta:

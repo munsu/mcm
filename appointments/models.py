@@ -95,11 +95,12 @@ class Facility(models.Model):
     client = models.ForeignKey('Client', models.PROTECT)
     name = models.CharField(max_length=255)
     # TODO shortform for sms?
-    address = models.CharField(max_length=255)
-    phone_number = models.CharField(max_length=20)
+    address = models.CharField(max_length=255, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'facilities'
+        unique_together = ('client', 'name')
 
     def __str__(self):
         return self.name
@@ -452,8 +453,8 @@ class Appointment(models.Model):
         choices=APPOINTMENT_CONFIRM_CHOICES)
     appointment_confirm_date = models.DateTimeField(null=True, blank=True)
 
-    # appointment_facility = models.ForeignKey('Facility', models.PROTECT)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
-    appointment_facility = models.CharField(max_length=255)  # temporary for demo
+    appointment_facility = models.ForeignKey('Facility', models.PROTECT, null=True)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
+    # appointment_facility = models.CharField(max_length=255)  # temporary for demo
     appointment_number = models.CharField(max_length=64)  #     appointment or procedure number required    string  uniquely identifies an appointment or procedure within the health system
     appointment_provider = models.CharField(max_length=255)  #   primary provider, surgeon       required    string  the primary care provider or surgeon of record for this appointment
     appointment_scheduled_service = models.CharField(max_length=255)  #  service                 required    string  service under which the appointment is scheduled (e.g., orthopedics, ent, open heart, etc.)
