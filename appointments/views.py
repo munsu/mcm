@@ -56,7 +56,8 @@ class ConfirmReportView(views.APIView):
 
     def get(self, request, *args, **kwargs):
         num_days = int(request.GET.get('days', 7))
-        now = timezone.now()
+        offset = int(request.GET.get('offset', 0))
+        now = timezone.now() + timedelta(days=offset*num_days)
         dates = [now.date() + timedelta(days=n) for n in range(num_days)]
         datasets = {
             status[0]: [0] * num_days
@@ -75,6 +76,7 @@ class ConfirmReportView(views.APIView):
         return Response({
             'labels': [date.strftime('%b %d') for date in dates],
             'datasets': datasets,
+            'range_str': "{} - {}".format(dates[0].strftime('%B %d'), dates[-1].strftime('%B %d, %Y')),
         })
 
 

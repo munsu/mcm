@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% block extrastyle %}
+<style>
+  .icon-btn {
+    cursor: pointer;
+  }
+</style>
+{% endblock extrastyle %}
 {% block content %}
   <div class="container">
     <div class="row">
@@ -76,6 +83,11 @@
               <div class="report-loader">Loading...</div>
               <div class="report-error hidden">Error loading report.</div>
               <div class="report hidden">
+                <div class="report-header">
+                  <span id="prev-report" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
+                  <span id="next-report" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
+                  <span id="confirm-report-header-label"></span>
+                </div>
                 <canvas id="confirm-report" class="report hidden" width="300" height="200"></canvas>
                 <span class="report-label">Confirmed vs unconfirmed per day graph</span>
               </div>
@@ -89,14 +101,21 @@
 
 {% block extrascript %}
   <script type="text/javascript">
-    $(document).ready(function(){
-      $('#action-table').DataTable({
-        order: [[2, 'asc']]
-      });
-        // stateSave: true
+    var offset = 0;
 
+    function next_confirm_report() {
+      offset += 1;
+      populate_confirm_report(offset);
+    };
+
+    function prev_confirm_report() {
+      offset -= 1;
+      populate_confirm_report(offset);
+    };
+
+    function populate_confirm_report(offset) {
       $.ajax({
-        url: "{% url 'appointments:reports:confirm' %}",
+        url: "{% url 'appointments:reports:confirm' %}?offset=" + offset,
         dataType: 'json',
         success: function(data){
           new Chart($('#confirm-report'), {
@@ -142,6 +161,7 @@
             }
           });
           $('.confirm-report-container .report').removeClass('hidden');
+          $('#confirm-report-header-label').text(data.range_str);
         },
         error: function(){
           $('.confirm-report-container .report-error').removeClass('hidden');
@@ -149,6 +169,21 @@
         complete: function(){
           $('.confirm-report-container .report-loader').addClass('hidden');
         }
+      });
+    };
+
+    $(document).ready(function(){
+      $('#action-table').DataTable({
+        order: [[2, 'asc']]
+      });
+        // stateSave: true
+      populate_confirm_report(offset)
+
+      $('#prev-report').click(function() {
+        prev_confirm_report();
+      });
+      $('#next-report').click(function() {
+        next_confirm_report();
       });
     });
   </script>
