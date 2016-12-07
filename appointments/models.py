@@ -114,20 +114,31 @@ class Constraint(models.Model):
         ('exact', 'exact'),
         ('iexact', 'Case-insensitive exact'),
         ('contains', 'contains'),
-        ('icontains', 'Case-insensitive contains')
+        ('icontains', 'Case-insensitive contains'),
+        ('regex', 'Regex'),
+        ('iregex', 'Case-insensitive regex'),
     )
     FIELD_CHOICES = (
         ('procedure_description', 'procedure_description'),
         ('appointment_scheduled_service', 'appointment_scheduled_service'),
     )
+    OPERATOR_TYPE_CHOICES = (
+        ('and', 'and'),
+        ('or', 'or'),
+    )
     protocol = models.ForeignKey(
         'Protocol', models.CASCADE, related_name='constraints')
+    negate = models.BooleanField(default=False)
     field = models.CharField(max_length=32, choices=FIELD_CHOICES)
     lookup_type = models.CharField(max_length=32, choices=LOOKUP_TYPE_CHOICES)
+    operator_type = models.CharField(max_length=32, default='and',
+                                     choices=OPERATOR_TYPE_CHOICES)
     value = models.CharField(max_length=255)
 
     def as_q(self):
         query = {'{}__{}'.format(self.field, self.lookup_type): self.value}
+        if self.negate:
+            return ~Q(**query)
         return Q(**query)
 
 
@@ -152,7 +163,10 @@ class Protocol(models.Model):
     def constraint_query(self):
         q = Q()
         for c in self.constraints.all():
-            q &= c.as_q()
+            if c.operator_type == 'and':
+                q &= c.as_q()
+            elif c.operator_type == 'or':
+                q |= c.as_q()
         return q
 
     def execute_rule(self, model, fields, types, values, operator):
