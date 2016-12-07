@@ -102,23 +102,24 @@
 {% block extrascript %}
   <script type="text/javascript">
     var offset = 0;
+    var confirmReport;
 
     function next_confirm_report() {
       offset += 1;
-      populate_confirm_report(offset);
+      update_confirm_report(offset);
     };
 
     function prev_confirm_report() {
       offset -= 1;
-      populate_confirm_report(offset);
+      update_confirm_report(offset);
     };
 
-    function populate_confirm_report(offset) {
+    function load_confirm_report() {
       $.ajax({
-        url: "{% url 'appointments:reports:confirm' %}?offset=" + offset,
+        url: "{% url 'appointments:reports:confirm' %}",
         dataType: 'json',
         success: function(data){
-          new Chart($('#confirm-report'), {
+          confirmReport = new Chart($('#confirm-report'), {
             type: 'bar',
             data: {
               labels: data.labels,
@@ -172,12 +173,52 @@
       });
     };
 
+    function update_confirm_report(offset) {
+      $.ajax({
+        url: "{% url 'appointments:reports:confirm' %}?offset=" + offset,
+        dataType: 'json',
+        success: function(data){
+          confirmReport.data.datasets = [
+            {
+              label: 'Confirmed',
+              data: data.datasets.confirmed || [],
+              backgroundColor: 'rgba(132, 255, 99, 0.6)',
+              borderColor: 'rgba(132, 255, 99, 1)',
+              borderWidth: 1
+            },
+            {
+              label: 'No Response',
+              data: data.datasets.unconfirmed || [],
+              backgroundColor: 'rgba(255, 206, 86, 0.6)',
+              borderColor: 'rgba(255, 206, 86, 1)',
+              borderWidth: 1
+            },
+            {
+              label: 'Cancelled',
+              data: data.datasets.cancelled || [],
+              backgroundColor: 'rgba(255, 99, 132, 0.6)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }
+          ];
+          confirmReport.update();
+          $('#confirm-report-header-label').text(data.range_str);
+        },
+        error: function(){
+          $('.confirm-report-container .report-error').removeClass('hidden');
+        },
+        complete: function(){
+          $('.confirm-report-container .report-loader').addClass('hidden');
+        }
+      });
+    };
+
     $(document).ready(function(){
       $('#action-table').DataTable({
         order: [[2, 'asc']]
       });
         // stateSave: true
-      populate_confirm_report(offset)
+      load_confirm_report();
 
       $('#prev-report').click(function() {
         prev_confirm_report();
