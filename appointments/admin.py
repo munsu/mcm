@@ -63,8 +63,10 @@ class MessageTemplateInline(admin.StackedInline):
     extra = 1
 
 
-class ConstraintInline(admin.StackedInline):
+class ConstraintInline(admin.TabularInline):
     model = Constraint
+    readonly_fields = ('id',)
+    fields = ('id', 'field', 'lookup_type', 'value')
     extra = 1
 
 

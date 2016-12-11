@@ -128,18 +128,12 @@ class Constraint(models.Model):
     )
     protocol = models.ForeignKey(
         'Protocol', models.CASCADE, related_name='constraints')
-    negate = models.BooleanField(default=False)
     field = models.CharField(max_length=32, choices=FIELD_CHOICES)
     lookup_type = models.CharField(max_length=32, choices=LOOKUP_TYPE_CHOICES)
-    operator_type = models.CharField(max_length=32, default='and',
-                                     choices=OPERATOR_TYPE_CHOICES)
     value = models.CharField(max_length=255)
 
-    def as_q(self):
-        query = {'{}__{}'.format(self.field, self.lookup_type): self.value}
-        if self.negate:
-            return ~Q(**query)
-        return Q(**query)
+    def as_q_str(self):
+        return "Q({}__{}='{}')".format(self.field, self.lookup_type, self.value)
 
 
 class Protocol(models.Model):
@@ -154,53 +148,26 @@ class Protocol(models.Model):
             }
         }
     }
+    "{} & {} | ({})"
     """
     name = models.CharField(max_length=64)
     clients = models.ManyToManyField('Client', related_name='protocols')
     priority = models.IntegerField()
     # rule = JSONField()
+    constraint_relationship = models.CharField(
+        help_text=("Please use {$constraint_id} for Constraint, & for AND, "
+                   "| for OR, ~ for NOT, and () for grouping. Sample: "
+                   "{$1} & ~({$2} | {$3})."), blank=True, max_length=255)
 
-    def constraint_query(self):
-        q = Q()
-        for c in self.constraints.all():
-            if c.operator_type == 'and':
-                q &= c.as_q()
-            elif c.operator_type == 'or':
-                q |= c.as_q()
-        return q
+    def eval_constraints(self):
+        try:
+            return eval(self.constraint_relationship.format(**self.constraints_dict()))
+        except SyntaxError:
+            # When constraint_relationship is blank
+            return Q()
 
-    def execute_rule(self, model, fields, types, values, operator):
-        """
-         Takes arguments & constructs Qs for filter()
-         We make sure we don't construct empty filters that would
-            return too many results
-         We return an empty dict if we have no filters so we can
-            still return an empty response from the view
-        """
-        queries = []
-        for (f, t, v) in zip(fields, types, values):
-            # We only want to build a Q with a value
-            if v != "":
-                kwargs = {str('%s__%s' % (f,t)) : str('%s' % v)}
-                queries.append(Q(**kwargs))
-
-        # Make sure we have a list of filters
-        if len(queries) > 0:
-            q = Q()
-            # AND/OR awareness
-            for query in queries:
-                if operator == "and":
-                    q = q & query
-                elif operator == "or":
-                    q = q | query
-                else:
-                    q = None
-            if q:
-                # We have a Q object, return the QuerySet
-                return model.objects.filter(q)
-        else:
-            # Return an empty result
-            return {}
+    def constraints_dict(self):
+        return {'$' + str(c.id): c.as_q_str() for c in self.constraints.all()}
 
     def __str__(self):
         return self.name
@@ -462,7 +429,7 @@ class Appointment(models.Model):
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
     # protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
-    protocols = models.ManyToManyField('Protocol')
+    protocols = models.ManyToManyField('Protocol', blank=True)
     # TODO choices
     appointment_confirm_status = models.CharField(
         max_length=64,
@@ -560,7 +527,7 @@ class Appointment(models.Model):
             check if appointment fits.
         """
         for protocol in self.client.protocols.all():
-            if Appointment.objects.filter(protocol.constraint_query(), id=self.id).exists():
+            if Appointment.objects.filter(protocol.eval_constraints(), id=self.id).exists():
                 print "found protocol for {}: {}".format(self.id, protocol.name)
                 self.protocols.add(protocol)
 
@@ -600,9 +567,9 @@ class Appointment(models.Model):
         if timezone.is_naive(self.appointment_scheduled_dt):
             self.appointment_scheduled_dt = timezone.make_aware(
                 self.appointment_scheduled_dt, timezone=self.timezone)
+        # TODO check the case for adjusted appointment dates.
         super(Appointment, self).save(*args, **kwargs)
         self.find_protocols()
-        # TODO check the case for adjusted appointment dates.
         self.schedule_next_message()
 
     def schedule_next_message(self):
