@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 
 import logging
 import pytz
+import string
 
 from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.forms.models import model_to_dict
@@ -150,6 +152,7 @@ class Protocol(models.Model):
     }
     "{} & {} | ({})"
     """
+    ALLOWED_CHARS = string.digits + ' ()|&$~\{\}'
     name = models.CharField(max_length=64)
     clients = models.ManyToManyField('Client', related_name='protocols')
     priority = models.IntegerField()
@@ -171,6 +174,11 @@ class Protocol(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        for c in self.constraint_relationship:
+            if c not in self.ALLOWED_CHARS:
+                raise ValidationError('Invalid characters on `constraint_relationship`.')
 
 
 class MessageTemplate(models.Model):
