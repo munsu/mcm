@@ -5,6 +5,10 @@
   .icon-btn {
     cursor: pointer;
   }
+  tr.group,
+  tr.group:hover {
+      background-color: #ddd !important;
+  }
 </style>
 {% endblock extrastyle %}
 {% block content %}
@@ -17,20 +21,36 @@
             <table id="action-table" class="table">
               <thead>
                 <tr>
-                  <th>phone number</th>
-                  <th>appt location</th>
                   <th>appt date</th>
+                  <th>appt time</th>
+                  <th>appt location</th>
+                  <th>patient name</th>
+                  <th>MRN</th>
+                  <th>age</th>
+                  <th>contact details</th>
                   <th>status</th>
+                  <th>procedure</th>
+                  <th>surgeon</th>
                   <th>actions</th>
                 </tr>
               </thead>
               <tbody>
                 {% for appointment in object_list %}
                   <tr>
-                    <td>{{ appointment.patient.patient_phone }}</td>
+                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time title="{{ appointment.appointment_date|date:'r' }}" datetime="{{ appointment.appointment_date|date:'c' }}">{{ appointment.appointment_date.date }}</time></td>
+                    <td data-order="{{ appointment.appointment_date.time }}"><time>{{ appointment.appointment_date.time }}</time></td>
                     <td>{{ appointment.scheduled_room }}</td>
-                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time title="{{ appointment.appointment_date|date:'r' }}" datetime="{{ appointment.appointment_date|date:'c' }}">{{ appointment.appointment_date }}</time></td>
+                    <td>{{ appointment.patient.name }}</td>
+                    <td>{{ appointment.patient.patient_mrn }}</td>
+                    <td>{{ appointment.patient.age }}</td>
+                    <td>
+                      <span>mobile:{{ appointment.patient.patient_mobile_phone }}</span><br />
+                      <span>home:{{ appointment.patient.patient_home_phone }}</span><br />
+                      <span>email:{{ appointment.patient.patient_email_address }}</span>
+                    </td>
                     <td>{{ appointment.get_appointment_confirm_status_display }}</td>
+                    <td>{{ appointment.procedure_description }}</td>
+                    <td>{{ appointment.appointment_provider }}</td>
                     <td><a href="{% url 'appointments:detail' appointment.pk %}">Details</a><!-- &nbsp;|&nbsp;<a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a> --></td>
                   </tr>
                 {% endfor %}
@@ -139,7 +159,7 @@
                   borderWidth: 1
                 },
                 {
-                  label: 'Cancelled',
+                  label: 'Canceled',
                   data: data.datasets.cancelled || [],
                   backgroundColor: 'rgba(255, 99, 132, 0.6)',
                   borderColor: 'rgba(255, 99, 132, 1)',
@@ -194,7 +214,7 @@
               borderWidth: 1
             },
             {
-              label: 'Cancelled',
+              label: 'Canceled',
               data: data.datasets.cancelled || [],
               backgroundColor: 'rgba(255, 99, 132, 0.6)',
               borderColor: 'rgba(255, 99, 132, 1)',
@@ -215,7 +235,25 @@
 
     $(document).ready(function(){
       $('#action-table').DataTable({
-        order: [[2, 'asc']]
+        columnDefs: [
+          { "visible": false, "targets": 0 }
+        ],
+        order: [[0, 'asc']],
+        drawCallback: function ( settings ) {
+          var api = this.api();
+          var rows = api.rows( {page:'current'} ).nodes();
+          var last=null;
+
+          api.column(0, {page:'current'} ).data().each( function ( group, i ) {
+              if ( last !== group ) {
+                  $(rows).eq( i ).before(
+                      '<tr class="group"><td colspan="10">'+group+'</td></tr>'
+                  );
+
+                  last = group;
+              }
+          } );
+        }
       });
         // stateSave: true
       load_confirm_report();

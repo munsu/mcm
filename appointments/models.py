@@ -593,7 +593,7 @@ class Appointment(models.Model):
                 # TODO store task id somewhere
                 from .tasks import deliver_message
                 logger.info("scheduling message for {} to be sent at {}".format(
-                    self.__str__, message.scheduled_delivery_datetime))
+                    self.__str__(), message.scheduled_delivery_datetime))
                 task_id = deliver_message.apply_async(
                     (message.id,), eta=message.scheduled_delivery_datetime)
                 message.task_id = task_id
@@ -644,3 +644,19 @@ class Patient(models.Model):
     @property
     def patient_phone(self):
         return self.patient_mobile_phone or self.patient_home_phone
+
+    @property
+    def contact_display(self):
+        return "mobile:{}\nhome:{}\nemail:{}".format(
+            self.patient_mobile_phone,
+            self.patient_home_phone,
+            self.patient_email_address)
+
+    @property
+    def name(self):
+        return "{}, {}".format(self.patient_last_name, self.patient_first_name)
+
+    @property
+    def age(self):
+        # TODO based on dob
+        return 0

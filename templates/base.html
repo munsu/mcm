@@ -39,11 +39,19 @@
                   <li class="{% active_class request 'home' %}"><a href="{% url 'home' %}">Home</a></li>
                   {% if request.user.is_authenticated %}
                     <li class="{% active_class request '#' %}">
-                      <a href="#" data-toggle="modal" data-target="#send-sms">Manual SMS</a>
+                      <a href="#">Unconfirmed</a>
                     </li>
-                    <li class="{% active_class request 'appointments:appointment-list' %}"><a href="{% url 'appointments:appointment-list' %}">Create Appointment</a></li>
+                    <li class="{% active_class request '#' %}">
+                      <a href="#">Canceled</a>
+                    </li>
                     <li class="{% active_class request 'protocols:manage' %}"><a href="{% url 'protocols:manage' %}">Manage Protocols</a></li>
                     <li class="{% active_class request 'appointments:upload:csv' %}"><a href="{% url 'appointments:upload:csv' %}">Upload CSV</a></li>
+                    <li class="{% active_class request '#' %}">
+                      <a href="#">Reports</a>
+                    </li>
+                    <li class="{% active_class request '#' %}">
+                      <a href="#" data-toggle="modal" data-target="#send-sms">Demo Message</a>
+                    </li>
                   {% endif %}
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
