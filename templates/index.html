@@ -37,8 +37,8 @@
               <tbody>
                 {% for appointment in object_list %}
                   <tr>
-                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time title="{{ appointment.appointment_date|date:'r' }}" datetime="{{ appointment.appointment_date|date:'c' }}">{{ appointment.appointment_date.date }}</time></td>
-                    <td data-order="{{ appointment.appointment_date.time }}"><time>{{ appointment.appointment_date.time }}</time></td>
+                    <td data-order="{{ appointment.appointment_date.date|date:'c' }}"><time title="{{ appointment.appointment_date.date }}" datetime="{{ appointment.appointment_date.date|date:'c' }}">{{ appointment.appointment_date.date }}</time></td>
+                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time>{{ appointment.appointment_date.time }}</time></td>
                     <td>{{ appointment.scheduled_room }}</td>
                     <td>{{ appointment.patient.name }}</td>
                     <td>{{ appointment.patient.patient_mrn }}</td>
@@ -236,13 +236,13 @@
     $(document).ready(function(){
       $('#action-table').DataTable({
         columnDefs: [
-          { "visible": false, "targets": 0 }
+          { "orderData": [0,1], "visible": false, "targets": 0 }
         ],
         order: [[0, 'asc']],
         drawCallback: function ( settings ) {
           var api = this.api();
           var rows = api.rows( {page:'current'} ).nodes();
-          var last=null;
+          var last = null;
 
           api.column(0, {page:'current'} ).data().each( function ( group, i ) {
               if ( last !== group ) {
