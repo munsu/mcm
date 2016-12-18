@@ -71,6 +71,9 @@ class Client(models.Model):
     TIMEZONE_CHOICES = zip(pytz.all_timezones, pytz.all_timezones)
     DATETIME_FORMAT_CHOICES = (
         # '%d/%m/%y',
+        ('%d %b %Y %I:%M%p', '25 Oct 2006 02:30PM'),
+        ('%b %d, %Y %I:%M%p', 'Oct 25, 2006 02:30PM'),
+        ('%B %d, %Y %I:%M%p', 'October 25, 2006 02:30PM'),
         ('%m/%d/%Y %I:%M%p', '10/25/2006 02:30PM'),
         ('%Y-%m-%d %H:%M', '2006-10-25 14:30'),
         ('%Y-%m-%d', '2006-10-25'),
