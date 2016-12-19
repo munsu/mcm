@@ -34,6 +34,21 @@
                   <th>actions</th>
                 </tr>
               </thead>
+              <tfoot>
+                <tr>
+                  <th>appt date</th>
+                  <th>appt time</th>
+                  <th>appt location</th>
+                  <th>patient name</th>
+                  <th>MRN</th>
+                  <th>age</th>
+                  <th>contact details</th>
+                  <th>status</th>
+                  <th>procedure</th>
+                  <th>surgeon</th>
+                  <th>actions</th>
+                </tr>
+              </tfoot>
               <tbody>
                 {% for appointment in object_list %}
                   <tr class="{% if appointment.get_appointment_confirm_status_display == 'Unconfirmed' %}bg-warning{% elif appointment.get_appointment_confirm_status_display == 'Cancelled' %}bg-danger{% endif %}">
@@ -239,6 +254,26 @@
           { "orderData": [0,1], "visible": false, "targets": 0 }
         ],
         order: [[0, 'asc']],
+        initComplete: function () {
+            this.api().columns([2, 7, 8, 9]).every( function () {
+                var column = this;
+                var select = $('<select><option value=""></option></select>')
+                    .appendTo( $(column.footer()).empty() )
+                    .on( 'change', function () {
+                        var val = $.fn.dataTable.util.escapeRegex(
+                            $(this).val()
+                        );
+ 
+                        column
+                            .search( val ? '^'+val+'$' : '', true, false )
+                            .draw();
+                    } );
+ 
+                column.data().unique().sort().each( function ( d, j ) {
+                    select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
+                } );
+            } );
+        },
         drawCallback: function ( settings ) {
           var api = this.api();
           var rows = api.rows( {page:'current'} ).nodes();
