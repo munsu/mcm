@@ -36,7 +36,7 @@
               </thead>
               <tbody>
                 {% for appointment in object_list %}
-                  <tr>
+                  <tr class="{% if appointment.get_appointment_confirm_status_display == 'Unconfirmed' %}bg-warning{% elif appointment.get_appointment_confirm_status_display == 'Cancelled' %}bg-danger{% endif %}">
                     <td data-order="{{ appointment.appointment_date.date|date:'c' }}"><time title="{{ appointment.appointment_date.date }}" datetime="{{ appointment.appointment_date.date|date:'c' }}">{{ appointment.appointment_date.date }}</time></td>
                     <td data-order="{{ appointment.appointment_date|date:'c' }}"><time>{{ appointment.appointment_date.time }}</time></td>
                     <td>{{ appointment.scheduled_room }}</td>
