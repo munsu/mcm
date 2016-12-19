@@ -210,6 +210,16 @@ class MessageTemplate(models.Model):
     def message_tail(self):
         return self.content_tail.strip()
 
+    def clean(self):
+        try:
+            # Archaic. Fails if there are no Appointments yet. TODO this better.
+            print self.message_body.format(**Appointment.objects.last().get_data())
+        except KeyError, e:
+            raise ValidationError('Invalid variable: {}'.format(str(e)))
+        except Exception, e:
+            print e
+            pass
+
     def __str__(self):
         return "{} - {} {} - {}".format(self.message_type, self.daydelta, self.time, self.protocol)
 
