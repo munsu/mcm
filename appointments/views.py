@@ -47,6 +47,25 @@ class IndexView(LoginRequiredMixin, ListView):
     model = Appointment
 
 
+class AppointmentsView(views.APIView):
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get(self, request, *args, **kwargs):
+        num_days = int(request.GET.get('days', 10))
+        offset = int(request.GET.get('offset', 0))
+        now = timezone.now() + timedelta(days=offset*num_days)
+        dates = [now.date() + timedelta(days=n) for n in range(num_days)]
+        appointments = (Appointment.objects
+            .annotate(date=Cast('appointment_date', DateField()))
+            .filter(date__range=(dates[0], dates[-1]))
+            .order_by('date')
+        )
+        return Response({
+            'appointments': [a.as_row() for a in appointments],
+            'range_str': "{} - {}".format(dates[0].strftime('%B %d'), dates[-1].strftime('%B %d, %Y')),
+        })
+
+
 class AppointmentDetailView(LoginRequiredMixin, DetailView):
     model = Appointment
 

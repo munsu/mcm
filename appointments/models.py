@@ -614,6 +614,46 @@ class Appointment(models.Model):
                 return task_id
         return None
 
+    def as_row(self):
+        color_class = ""
+        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_UNCONFIRMED:
+            color_class = "bg-warning"
+        elif self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_CANCELLED:
+            color_class = "bg-danger"
+        return """
+        <tr class="{0}">
+          <td data-order="{1:%Y-%m-%dT%H:%M:%S}"><time title="{1:%b %d, %Y}" datetime="{1:%Y-%m-%dT%H:%M:%S}">{1:%b %d, %Y}</time></td>
+          <td data-order="{2:%Y-%m-%dT%H:%M:%S}"><time>{3:%I:%M%p}</time></td>
+          <td>{4}</td>
+          <td>{5}</td>
+          <td>{6}</td>
+          <td>{7}</td>
+          <td>
+            <span>mobile:{8}</span><br />
+            <span>home:{9}</span><br />
+            <span>email:{10}</span>
+          </td>
+          <td>{11}</td>
+          <td>{12}</td>
+          <td>{13}</td>
+          <td><a href="{14}">Details</a><!-- &nbsp;|&nbsp;<a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a> --></td>
+        </tr>
+        """.format(
+        color_class,
+        self.appointment_date.date(),
+        self.appointment_date, self.appointment_date.time(),
+        self.scheduled_room,
+        self.patient.name,
+        self.patient.patient_mrn,
+        self.patient.age,
+        self.patient.patient_mobile_phone,
+        self.patient.patient_home_phone,
+        self.patient.patient_email_address,
+        self.get_appointment_confirm_status_display(),
+        self.procedure_description,
+        self.appointment_provider,
+        reverse('appointments:detail', args=[self.pk])).replace('\n', '')
+
     def __str__(self):
         return "{} at {} for pid {}: {}".format(
             self.scheduled_room,

@@ -18,6 +18,11 @@
         <div class="panel panel-default">
           <div class="panel-heading">Actionable Responses</div>
           <div class="panel-body">
+            <div>
+              <span id="prev-appointments" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
+              <span id="next-appointments" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
+              <span id="appointments-header-label"></span>
+            </div>
             <table id="action-table" class="table">
               <thead>
                 <tr>
@@ -50,25 +55,6 @@
                 </tr>
               </tfoot>
               <tbody>
-                {% for appointment in object_list %}
-                  <tr class="{% if appointment.get_appointment_confirm_status_display == 'Unconfirmed' %}bg-warning{% elif appointment.get_appointment_confirm_status_display == 'Cancelled' %}bg-danger{% endif %}">
-                    <td data-order="{{ appointment.appointment_date.date|date:'c' }}"><time title="{{ appointment.appointment_date.date }}" datetime="{{ appointment.appointment_date.date|date:'c' }}">{{ appointment.appointment_date.date }}</time></td>
-                    <td data-order="{{ appointment.appointment_date|date:'c' }}"><time>{{ appointment.appointment_date.time }}</time></td>
-                    <td>{{ appointment.scheduled_room }}</td>
-                    <td>{{ appointment.patient.name }}</td>
-                    <td>{{ appointment.patient.patient_mrn }}</td>
-                    <td>{{ appointment.patient.age }}</td>
-                    <td>
-                      <span>mobile:{{ appointment.patient.patient_mobile_phone }}</span><br />
-                      <span>home:{{ appointment.patient.patient_home_phone }}</span><br />
-                      <span>email:{{ appointment.patient.patient_email_address }}</span>
-                    </td>
-                    <td>{{ appointment.get_appointment_confirm_status_display }}</td>
-                    <td>{{ appointment.procedure_description }}</td>
-                    <td>{{ appointment.appointment_provider }}</td>
-                    <td><a href="{% url 'appointments:detail' appointment.pk %}">Details</a><!-- &nbsp;|&nbsp;<a href="#">SMS</a>&nbsp;|&nbsp;<a href="#">Call</a> --></td>
-                  </tr>
-                {% endfor %}
               </tbody>
             </table>
           </div>
@@ -137,17 +123,9 @@
 {% block extrascript %}
   <script type="text/javascript">
     var offset = 0;
+    var at_offset = 0;
     var confirmReport;
-
-    function next_confirm_report() {
-      offset += 1;
-      update_confirm_report(offset);
-    };
-
-    function prev_confirm_report() {
-      offset -= 1;
-      update_confirm_report(offset);
-    };
+    var actionTable;
 
     function load_confirm_report() {
       $.ajax({
@@ -213,6 +191,7 @@
         url: "{% url 'appointments:reports:confirm' %}?offset=" + offset,
         dataType: 'json',
         success: function(data){
+          confirmReport.data.labels = data.labels;
           confirmReport.data.datasets = [
             {
               label: 'Confirmed',
@@ -248,32 +227,12 @@
       });
     };
 
-    $(document).ready(function(){
-      $('#action-table').DataTable({
+    function load_action_table() {
+      actionTable = $('#action-table').DataTable({
         columnDefs: [
           { "orderData": [0,1], "visible": false, "targets": 0 }
         ],
         order: [[0, 'asc']],
-        initComplete: function () {
-            this.api().columns([2, 7, 8, 9]).every( function () {
-                var column = this;
-                var select = $('<select><option value=""></option></select>')
-                    .appendTo( $(column.footer()).empty() )
-                    .on( 'change', function () {
-                        var val = $.fn.dataTable.util.escapeRegex(
-                            $(this).val()
-                        );
- 
-                        column
-                            .search( val ? '^'+val+'$' : '', true, false )
-                            .draw();
-                    } );
- 
-                column.data().unique().sort().each( function ( d, j ) {
-                    select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
-                } );
-            } );
-        },
         drawCallback: function ( settings ) {
           var api = this.api();
           var rows = api.rows( {page:'current'} ).nodes();
@@ -288,16 +247,71 @@
                   last = group;
               }
           } );
+          api.columns([2, 7, 8, 9]).every( function () {
+              var column = this;
+              var select = $('<select><option value=""></option></select>')
+                  .appendTo( $(column.footer()).empty() )
+                  .on( 'change', function () {
+                      var val = $.fn.dataTable.util.escapeRegex(
+                          $(this).val()
+                      );
+
+                      column
+                          .search( val ? '^'+val+'$' : '', true, false )
+                          .draw();
+                  } );
+
+              column.data().unique().sort().each( function ( d, j ) {
+                  select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
+              } );
+          } );
         }
       });
+      update_action_table(at_offset);
+    };
+
+    function update_action_table(offset) {
+      $.ajax({
+        url: "{% url 'appointments:actionables' %}?offset=" + offset,
+        dataType: 'json',
+        success: function(data){
+          actionTable.rows().remove().draw(false);
+          for (var i=0; i<data.appointments.length; i++) {
+            actionTable.row.add($(data.appointments[i])).draw(false);
+          }
+          $('#appointments-header-label').text(data.range_str);
+        },
+        error: function(){
+          console.log("data tables error");
+        },
+        complete: function(){
+          console.log("data tables update complete");
+        }
+      });
+    };
+
+    $(document).ready(function(){
+      load_action_table();
+
         // stateSave: true
       load_confirm_report();
 
+      $('#prev-appointments').click(function() {
+        at_offset -= 1;
+        update_action_table(at_offset);
+      });
+      $('#next-appointments').click(function() {
+        at_offset += 1;
+        update_action_table(at_offset);
+      });
+
       $('#prev-report').click(function() {
-        prev_confirm_report();
+        offset -= 1;
+        update_confirm_report(offset);
       });
       $('#next-report').click(function() {
-        next_confirm_report();
+        offset += 1;
+        update_confirm_report(offset);
       });
     });
   </script>
