@@ -15,14 +15,16 @@
   <div class="container">
     <div class="row">
       <div class="col-md-12">
+        <div>
+          <h3>
+              <span id="prev-appointments" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
+              <span id="next-appointments" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
+              <span id="appointments-nav-label"></span>
+            </h3>
+        </div>
         <div class="panel panel-default">
           <div class="panel-heading">Actionable Responses</div>
           <div class="panel-body">
-            <div>
-              <span id="prev-appointments" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
-              <span id="next-appointments" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
-              <span id="appointments-header-label"></span>
-            </div>
             <table id="action-table" class="table">
               <thead>
                 <tr>
@@ -104,11 +106,6 @@
               <div class="report-loader">Loading...</div>
               <div class="report-error hidden">Error loading report.</div>
               <div class="report hidden">
-                <div class="report-header">
-                  <span id="prev-report" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
-                  <span id="next-report" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
-                  <span id="confirm-report-header-label"></span>
-                </div>
                 <canvas id="confirm-report" class="report hidden" width="300" height="200"></canvas>
                 <span class="report-label">Confirmed vs unconfirmed per day graph</span>
               </div>
@@ -123,7 +120,6 @@
 {% block extrascript %}
   <script type="text/javascript">
     var offset = 0;
-    var at_offset = 0;
     var confirmReport;
     var actionTable;
 
@@ -175,7 +171,7 @@
             }
           });
           $('.confirm-report-container .report').removeClass('hidden');
-          $('#confirm-report-header-label').text(data.range_str);
+          // $('#appointments-nav-label').text(data.range_str);
         },
         error: function(){
           $('.confirm-report-container .report-error').removeClass('hidden');
@@ -216,7 +212,7 @@
             }
           ];
           confirmReport.update();
-          $('#confirm-report-header-label').text(data.range_str);
+          // $('#appointments-nav-label').text(data.range_str);
         },
         error: function(){
           $('.confirm-report-container .report-error').removeClass('hidden');
@@ -267,7 +263,7 @@
           } );
         }
       });
-      update_action_table(at_offset);
+      update_action_table(offset);
     };
 
     function update_action_table(offset) {
@@ -279,7 +275,7 @@
           for (var i=0; i<data.appointments.length; i++) {
             actionTable.row.add($(data.appointments[i])).draw(false);
           }
-          $('#appointments-header-label').text(data.range_str);
+          $('#appointments-nav-label').text(data.range_str);
         },
         error: function(){
           console.log("data tables error");
@@ -292,25 +288,16 @@
 
     $(document).ready(function(){
       load_action_table();
-
-        // stateSave: true
       load_confirm_report();
 
       $('#prev-appointments').click(function() {
-        at_offset -= 1;
-        update_action_table(at_offset);
-      });
-      $('#next-appointments').click(function() {
-        at_offset += 1;
-        update_action_table(at_offset);
-      });
-
-      $('#prev-report').click(function() {
         offset -= 1;
+        update_action_table(offset);
         update_confirm_report(offset);
       });
-      $('#next-report').click(function() {
+      $('#next-appointments').click(function() {
         offset += 1;
+        update_action_table(offset);
         update_confirm_report(offset);
       });
     });

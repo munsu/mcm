@@ -74,7 +74,7 @@ class ConfirmReportView(views.APIView):
     permission_classes = (permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        num_days = int(request.GET.get('days', 7))
+        num_days = int(request.GET.get('days', 10))
         offset = int(request.GET.get('offset', 0))
         now = timezone.now() + timedelta(days=offset*num_days)
         dates = [now.date() + timedelta(days=n) for n in range(num_days)]
