@@ -82,6 +82,7 @@ class ConfirmReportView(views.APIView):
             status[0]: [0] * num_days
             for status in Appointment.APPOINTMENT_CONFIRM_CHOICES
         }
+        totals = [0] * num_days
         confirmations = (
             Appointment.objects
             .annotate(date=Cast('appointment_date', DateField()))
@@ -92,9 +93,11 @@ class ConfirmReportView(views.APIView):
         )
         for c in confirmations:
             datasets[c['appointment_confirm_status']][dates.index(c['date'])] = c['count']
+            totals[dates.index(c['date'])] += c['count']
         return Response({
             'labels': [date.strftime('%b %d') for date in dates],
             'datasets': datasets,
+            'totals': totals,
             'range_str': "{} - {}".format(dates[0].strftime('%B %d'), dates[-1].strftime('%B %d, %Y')),
         })
 
