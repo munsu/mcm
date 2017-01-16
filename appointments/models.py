@@ -671,7 +671,8 @@ class Patient(models.Model):
     patient_home_phone = models.CharField(max_length=64, null=True, blank=True)  #     patient home phone number       desired     string  patient home phone number as recorded on the system. if unavailable, leave blank
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
-#     # strikes and stuff
+    patient_date_of_birth = models.DateField()
+#   # strikes and stuff
 
     def save(self, *args, **kwargs):
         # TODO Will fail if number has + in the middle.
@@ -711,5 +712,8 @@ class Patient(models.Model):
 
     @property
     def age(self):
-        # TODO based on dob
-        return 0
+        today = timezone.now()
+        born = self.patient_date_of_birth
+        return (today.year
+                - born.year
+                - ((today.month, today.day) < (born.month, born.day)))
