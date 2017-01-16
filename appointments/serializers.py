@@ -71,6 +71,7 @@ class AppointmentSerializer(serializers.Serializer):
     patient_home_phone = serializers.CharField(required=False)
     patient_mobile_phone = serializers.CharField()
     patient_email_address = serializers.EmailField()
+    patient_date_of_birth = serializers.DateField()
 
     def create(self, validated_data):
         """
