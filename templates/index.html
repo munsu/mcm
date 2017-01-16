@@ -368,24 +368,6 @@
                   last = group;
               }
           } );
-          api.columns([2, 7, 8, 9]).every( function () {
-              var column = this;
-              var select = $('<select><option value=""></option></select>')
-                  .appendTo( $(column.footer()).empty() )
-                  .on( 'change', function () {
-                      var val = $.fn.dataTable.util.escapeRegex(
-                          $(this).val()
-                      );
-
-                      column
-                          .search( val ? '^'+val+'$' : '', true, false )
-                          .draw();
-                  } );
-
-              column.data().unique().sort().each( function ( d, j ) {
-                  select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
-              } );
-          } );
         }
       });
       update_action_table(offset);
@@ -400,6 +382,24 @@
           for (var i=0; i<data.appointments.length; i++) {
             actionTable.row.add($(data.appointments[i])).draw(false);
           }
+          actionTable.columns([2, 7, 8, 9]).every( function () {
+            var column = this;
+            var select = $('<select><option value=""></option></select>')
+                .appendTo( $(column.footer()).empty() )
+                .on( 'change', function () {
+                    var val = $.fn.dataTable.util.escapeRegex(
+                        $(this).val()
+                    );
+
+                    column
+                        .search( val ? '^'+val+'$' : '', true, false )
+                        .draw();
+                } );
+
+            column.data().unique().sort().each( function ( d, j ) {
+                select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
+            } );
+          } );
           $('#appointments-nav-label').text(data.range_str);
         },
         error: function(){
