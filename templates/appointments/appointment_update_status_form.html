@@ -7,12 +7,13 @@
         <h2>{{ object.appointment_number }}</h2>
         <div class="row">
           <div class="col-xs-12 col-md-7">
-            <form method="post" action="{% url 'appointments:upload:csv' %}">
+            <form method="post" action="">
               {% csrf_token %}
+              {{ form.non_field_errors }}
               <dl class="dl-horizontal">
                 <dt>Client</dt><dd>{{ object.client }}</dd>
                 <dt>Patient</dt><dd>{{ object.patient }}</dd>
-                <dt>Confirm Status</dt><dd>{{ object.get_appointment_confirm_status_display }}</dd>
+                <dt>Confirm Status</dt><dd>{{ form.appointment_confirm_status }}</dd>
                 <dt>Confirm Date</dt><dd><time title="{{ object.appointment_confirm_date|date:'r' }}" datetime="{{ object.appointment_confirm_date|date:'c' }}">{{ object.appointment_confirm_date }}</time></dd>
                 <dt>Appointment Facility</dt><dd>{{ object.appointment_facility }}</dd>
                 <dt>Appointment Number</dt><dd>{{ object.appointment_number }}</dd>
@@ -32,8 +33,9 @@
                 <dt>Patient Type</dt><dd>{{ object.patient_type }}</dd>
                 <dt>ASA Rating</dt><dd>{{ object.asa_rating }}</dd>
                 <dt>ASA CD</dt><dd>{{ object.asa_cd }}</dd>
+                <dt>Notes</dt><dd>{{ form.notes }}</dd>
               </dl>
-              <button type="submit" class="btn btn-default">Submit</button>
+              <button type="submit" class="btn btn-default pull-right">Submit</button>
             </form>
           </div>
           <div class="col-xs-12 col-md-5">

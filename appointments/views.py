@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView, DetailView, TemplateView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, UpdateView
 
 from braces.views import JSONResponseMixin
 from rest_framework import exceptions as drf_exceptions
@@ -68,6 +68,15 @@ class AppointmentsView(views.APIView):
 
 class AppointmentDetailView(LoginRequiredMixin, DetailView):
     model = Appointment
+
+
+class AppointmentUpdateStatusView(LoginRequiredMixin, UpdateView):
+    model = Appointment
+    fields = ['appointment_confirm_status', 'notes']
+    template_name_suffix = "_update_status_form"
+
+    def get_success_url(self):
+        return reverse('appointments:detail', args=[self.object.id])
 
 
 class ConfirmReportView(views.APIView):

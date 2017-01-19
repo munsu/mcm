@@ -487,6 +487,8 @@ class Appointment(models.Model):
     asa_rating = models.CharField(max_length=64, null=True, blank=True)  #             asa rating                      optional    string  the american society of anesthesiologists acuity rating for this patient
     asa_cd = models.CharField(max_length=64, null=True, blank=True)  #                 asa code
 
+    # misc
+    notes = models.TextField(blank=True)
     objects = AppointmentManager()
 
     @property
@@ -588,6 +590,12 @@ class Appointment(models.Model):
         if timezone.is_naive(self.appointment_scheduled_dt):
             self.appointment_scheduled_dt = timezone.make_aware(
                 self.appointment_scheduled_dt, timezone=self.timezone)
+        # set confirm date on save
+        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_CONFIRMED and \
+                self.appointment_confirm_date is None:
+            self.appointment_confirm_date = timezone.now()
+        else:
+            self.appointment_confirm_date = None
         # TODO check the case for adjusted appointment dates.
         super(Appointment, self).save(*args, **kwargs)
         self.find_protocols()
