@@ -53,11 +53,16 @@ class AppointmentsView(views.APIView):
     def get(self, request, *args, **kwargs):
         num_days = int(request.GET.get('days', 10))
         offset = int(request.GET.get('offset', 0))
+        show_only = []
+        for status in ['confirmed', 'unconfirmed', 'cancelled']:
+            if int(request.GET.get(status, 1)):
+                show_only.append(status)
         now = timezone.now() + timedelta(days=offset*num_days)
         dates = [now.date() + timedelta(days=n) for n in range(num_days)]
         appointments = (Appointment.objects
             .annotate(date=Cast('appointment_date', DateField()))
-            .filter(date__range=(dates[0], dates[-1]))
+            .filter(date__range=(dates[0], dates[-1]),
+                    appointment_confirm_status__in=show_only)
             .order_by('date')
         )
         return Response({

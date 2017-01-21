@@ -23,7 +23,7 @@
             </h3>
         </div>
         <div class="panel panel-default">
-          <div class="panel-heading">Actionable Responses</div>
+          <div class="panel-heading">Unconfirmed and Canceled Appointments</div>
           <div class="panel-body">
             <table id="action-table" class="table">
               <thead>
@@ -375,7 +375,7 @@
 
     function update_action_table(offset) {
       $.ajax({
-        url: "{% url 'appointments:actionables' %}?offset=" + offset,
+        url: "{% url 'appointments:actionables' %}?confirmed=0&unconfirmed=1&cancelled=1&offset=" + offset,
         dataType: 'json',
         success: function(data){
           actionTable.rows().remove().draw(false);
