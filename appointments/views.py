@@ -47,6 +47,16 @@ class IndexView(LoginRequiredMixin, ListView):
     model = Appointment
 
 
+class UnconfirmedView(LoginRequiredMixin, ListView):
+    template_name = 'unconfirmed.html'
+    model = Appointment
+
+
+class CanceledView(LoginRequiredMixin, ListView):
+    template_name = 'canceled.html'
+    model = Appointment
+
+
 class AppointmentsView(views.APIView):
     permission_classes = (permissions.IsAuthenticated, )
 

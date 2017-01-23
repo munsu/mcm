@@ -50,6 +50,8 @@ protocols = [
 
 urlpatterns = [
     url(r'^$', views.IndexView.as_view(), name='home'),
+    url(r'^unconfirmed/$', views.UnconfirmedView.as_view(), name='unconfirmed'),
+    url(r'^canceled/$', views.CanceledView.as_view(), name='canceled'),
     url(r'^t/$', views.twilio_reply, name='twilio'),
     url(r'^v/$', views.twilio_voice, name='twilio-voice'),
     url(r'^v/(?P<appointment_message_id>\d+)/$', views.twilio_voice, name='twilio-voice-detail'),

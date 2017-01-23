@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block extrastyle %}
+<style>
+  .icon-btn {
+    cursor: pointer;
+  }
+  tr.group,
+  tr.group:hover {
+      background-color: #ddd !important;
+  }
+</style>
+{% endblock extrastyle %}
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div>
+          <h3>
+              <span id="prev-appointments" class="icon-btn glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
+              <span id="next-appointments" class="icon-btn glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
+              <span id="appointments-nav-label"></span>
+            </h3>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-heading">Canceled Appointments</div>
+          <div class="panel-body">
+            <table id="action-table" class="table">
+              <thead>
+                <tr>
+                  <th>appt date</th>
+                  <th>appt time</th>
+                  <th>appt location</th>
+                  <th>patient name</th>
+                  <th>MRN</th>
+                  <th>age</th>
+                  <th>contact details</th>
+                  <th>status</th>
+                  <th>procedure</th>
+                  <th>surgeon</th>
+                  <th>actions</th>
+                </tr>
+              </thead>
+              <tfoot>
+                <tr>
+                  <th>appt date</th>
+                  <th>appt time</th>
+                  <th>appt location</th>
+                  <th>patient name</th>
+                  <th>MRN</th>
+                  <th>age</th>
+                  <th>contact details</th>
+                  <th>status</th>
+                  <th>procedure</th>
+                  <th>surgeon</th>
+                  <th>actions</th>
+                </tr>
+              </tfoot>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+{% block extrascript %}
+  <script type="text/javascript">
+    var offset = 0;
+    var actionTable;
+
+    function load_action_table() {
+      actionTable = $('#action-table').DataTable({
+        columnDefs: [
+          { "orderData": [0,1], "visible": false, "targets": 0 }
+        ],
+        order: [[0, 'asc']],
+        drawCallback: function ( settings ) {
+          var api = this.api();
+          var rows = api.rows( {page:'current'} ).nodes();
+          var last = null;
+
+          api.column(0, {page:'current'} ).data().each( function ( group, i ) {
+              if ( last !== group ) {
+                  $(rows).eq( i ).before(
+                      '<tr class="group"><td colspan="10">'+group+'</td></tr>'
+                  );
+
+                  last = group;
+              }
+          } );
+        }
+      });
+      update_action_table(offset);
+    };
+
+    function update_action_table(offset) {
+      $.ajax({
+        url: "{% url 'appointments:actionables' %}?confirmed=0&unconfirmed=0&cancelled=1&offset=" + offset,
+        dataType: 'json',
+        success: function(data){
+          actionTable.rows().remove().draw(false);
+          for (var i=0; i<data.appointments.length; i++) {
+            actionTable.row.add($(data.appointments[i])).draw(false);
+          }
+          actionTable.columns([2, 7, 8, 9]).every( function () {
+            var column = this;
+            var select = $('<select><option value=""></option></select>')
+                .appendTo( $(column.footer()).empty() )
+                .on( 'change', function () {
+                    var val = $.fn.dataTable.util.escapeRegex(
+                        $(this).val()
+                    );
+
+                    column
+                        .search( val ? '^'+val+'$' : '', true, false )
+                        .draw();
+                } );
+
+            column.data().unique().sort().each( function ( d, j ) {
+                select.append( '<option value="'+d+'">'+(d.length > 11 ? d.substr(0,11) + "..." : d)+'</option>' )
+            } );
+          } );
+          $('#appointments-nav-label').text(data.range_str);
+        },
+        error: function(){
+          console.log("data tables error");
+        },
+        complete: function(){
+          console.log("data tables update complete");
+        }
+      });
+    };
+
+    $(document).ready(function(){
+      load_action_table();
+
+      $('#prev-appointments').click(function() {
+        offset -= 1;
+        update_action_table(offset);
+      });
+      $('#next-appointments').click(function() {
+        offset += 1;
+        update_action_table(offset);
+      });
+    });
+  </script>
+{% endblock extrascript %}
