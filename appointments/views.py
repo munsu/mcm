@@ -56,6 +56,10 @@ class CanceledView(LoginRequiredMixin, ListView):
     template_name = 'canceled.html'
     model = Appointment
 
+class ReportsView(LoginRequiredMixin, ListView):
+    template_name = 'reports.html'
+    model = Appointment
+
 
 class AppointmentsView(views.APIView):
     permission_classes = (permissions.IsAuthenticated, )

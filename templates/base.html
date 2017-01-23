@@ -46,8 +46,8 @@
                     </li>
                     <li class="{% active_class request 'protocols:manage' %}"><a href="{% url 'protocols:manage' %}">Manage Protocols</a></li>
                     <li class="{% active_class request 'appointments:upload:csv' %}"><a href="{% url 'appointments:upload:csv' %}">Upload CSV</a></li>
-                    <li class="{% active_class request '#' %}">
-                      <a href="#">Reports</a>
+                    <li class="{% active_class request 'reports-tab' %}">
+                      <a href="{% url 'reports-tab' %}">Reports</a>
                     </li>
                     <li class="{% active_class request '#' %}">
                       <a href="#" data-toggle="modal" data-target="#send-sms">Demo Message</a>
