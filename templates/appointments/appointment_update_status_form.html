@@ -4,7 +4,7 @@
   <div class="container">
     <div class="row">
       <div class="col-xs-12">
-        <h2>{{ object.appointment_number }}</h2>
+        <h2>Appointment #{{ object.appointment_number }}: {{ object.patient.name }} - <time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></h2>
         <div class="row">
           <div class="col-xs-12 col-md-7">
             <form method="post" action="">
@@ -12,15 +12,21 @@
               {{ form.non_field_errors }}
               <dl class="dl-horizontal">
                 <dt>Client</dt><dd>{{ object.client }}</dd>
-                <dt>Patient</dt><dd>{{ object.patient }}</dd>
+                <dt>Patient MRN</dt><dd>{{ object.patient.patient_mrn }}</dd>
+                <dt>Contact Details</dt><dd>
+                  <span>mobile:{{ object.patient.patient_mobile_phone }}</span><br />
+                  <span>home:{{ object.patient.patient_home_phone }}</span><br />
+                  <span>email:{{ object.patient.patient_email_address }}</span>
+                </dd>
                 <dt>Confirm Status</dt><dd>{{ form.appointment_confirm_status }}</dd>
                 <dt>Confirm Date</dt><dd><time title="{{ object.appointment_confirm_date|date:'r' }}" datetime="{{ object.appointment_confirm_date|date:'c' }}">{{ object.appointment_confirm_date }}</time></dd>
+                <dt>Date of Birth</dt><dd><time title="{{ object.patient.patient_date_of_birth }}" datetime="{{ object.patient.patient_date_of_birth|date:'c' }}">{{ object.patient.patient_date_of_birth }}</time></dd>
                 <dt>Appointment Facility</dt><dd>{{ object.appointment_facility }}</dd>
                 <dt>Appointment Number</dt><dd>{{ object.appointment_number }}</dd>
                 <dt>Provider</dt><dd>{{ object.appointment_provider }}</dd>
                 <dt>Scheduled Service</dt><dd>{{ object.appointment_scheduled_service }}</dd>
-                <dt>Status</dt><dd>{{ object.appointment_status }}</dd>
-                <dt>Date</dt><dd><time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></dd>
+                <dt>Appointment Status</dt><dd>{{ object.appointment_status }}</dd>
+                <dt>Appointment Date</dt><dd><time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></dd>
                 <dt>Scheduled Date</dt><dd><time title="{{ object.appointment_scheduled_dt|date:'r' }}" datetime="{{ object.appointment_scheduled_dt|date:'c' }}">{{ object.appointment_scheduled_dt }}</time></dd>
                 <dt>Appointment Type</dt><dd>{{ object.appointment_type }}</dd>
                 <dt>Appointment Class</dt><dd>{{ object.appointment_class }}</dd>
