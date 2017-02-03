@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+
+{% block extrastyle %}
+<style>
+  .system-msg {
+    margin-bottom: 20px;
+    font-size: 0.9em;
+  }
+</style>
+{% endblock extrastyle %}
 {% block content %}
   <div class="container">
     <div class="row">
@@ -47,45 +56,47 @@
           <div class="col-xs-12 col-md-5">
             <h4>Messages</h4>
             <div class="well">
-              {% for message in object.messages.all %}
+              {% for message in object.messages_log.all %}
                 <div class="row">
-                  <div class="col-xs-11 col-xs-offset-1">
-                    <div class="panel panel-{% if message.twilio_status == 'queued' %}info{% elif message.twilio_status == 'failed' %}danger{% elif message.twilio_status == 'undelivered' %}warning{% else %}primary{% endif %}">
-                      <div class="panel-body">
-                        {{ message.body }}
-                      </div>
-                      <div class="panel-footer clearfix">
-                        {% if message.twilio_status %}
-                          <div class="pull-left">
-                            <span class="label label-{% if message.twilio_status == 'queued' %}info{% elif message.twilio_status == 'failed' %}danger{% elif message.twilio_status == 'undelivered' %}warning{% else %}primary{% endif %}">{{ message.get_twilio_status_display }}</span>
-                          </div>
-                        {% endif %}
-                        <div class="pull-right">
-                          <time class="small" title="{{ message.scheduled_delivery_datetime|date:'r' }}" datetime="{{ message.scheduled_delivery_datetime|date:'c' }}">{{ message.scheduled_delivery_datetime }}</time>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {% for reply in message.reply_set.all %}
-                  <div class="row">
-                    <div class="col-xs-11">
-                      <div class="panel panel-default">
+                  {% if message.sender == 'client' %}
+                    <div class="col-xs-11 col-xs-offset-1">
+                      <div class="panel panel-primary">
                         <div class="panel-body">
-                          {{ reply.content }}
+                          {{ message.body }}
                         </div>
                         <div class="panel-footer clearfix">
                           <div class="pull-left">
-                            <small>{{ message.recipient }}</small>
+                            <!-- TODO dynamic, include queued messages -->
+                            <span class="label label-primary">Delivered</span>
                           </div>
                           <div class="pull-right">
-                            <time class="small" title="{{ reply.created|date:'r' }}" datetime="{{ reply.created|date:'c' }}">{{ reply.created }}</time>
+                            <time class="small" title="{{ message.created|date:'r' }}" datetime="{{ message.created|date:'c' }}">{{ message.created }}</time>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                {% endfor %}
+                  {% elif message.sender == 'patient' %}
+                    <div class="col-xs-11">
+                      <div class="panel panel-default">
+                        <div class="panel-body">
+                          {{ message.body }}
+                        </div>
+                        <div class="panel-footer clearfix">
+                          <div class="pull-right">
+                            <time class="small" title="{{ message.created|date:'r' }}" datetime="{{ message.created|date:'c' }}">{{ message.created }}</time>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% elif message.sender == 'system' %}
+                    <div class="col-xs-8 col-xs-offset-2">
+                      <div class="system-msg text-center">
+                        <time class="small" title="{{ message.created|date:'r' }}" datetime="{{ message.created|date:'c' }}">{{ message.created }}</time><br />
+                        {{ message.body|linebreaks }}
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
               {% empty %}
                 No messages to show
               {% endfor %}

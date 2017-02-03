@@ -224,6 +224,20 @@ class MessageTemplate(models.Model):
         return "{} - {} {} - {}".format(self.message_type, self.daydelta, self.time, self.protocol)
 
 
+class MessageLog(TimeStampedModel):
+    SENDER_CHOICES = (
+        ('client', 'Client'),
+        ('patient', 'Patient'),
+        ('system', 'System')
+    )
+    appointment = models.ForeignKey('Appointment', models.CASCADE, related_name='messages_log')
+    sender = models.CharField(max_length=7, choices=SENDER_CHOICES)
+    body = models.TextField()
+
+    def __str__(self):
+        return "[{}] {}: {}".format(self.appointment, self.sender, self.body)
+
+
 class MessageAction(models.Model):
     ACTION_CHOICES = (
         ('confirm', 'Confirm Appointment'),
@@ -343,8 +357,11 @@ class Message(TimeStampedModel):
             logger.info("sending sms message")
             data['body'] = self.body
             try:
-                self.message_sid = tw_send_sms(**data)
+                self.message_sid = tw_send_sms(**data)  # TODO doesn't error?
                 self.twilio_status = 'delivered'
+                self.appointment.messages_log.create(
+                    sender='client',
+                    body=self.body)
             except Exception, e:
                 logger.warning(e)
             self.save()
@@ -531,18 +548,34 @@ class Appointment(models.Model):
         self.appointment_confirm_date = timezone.now()
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CONFIRMED
         self.save()
+        self.message_logs.create(
+            sender='system',
+            body="Appointment Confirmed."
+        )
 
     def stop(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
+        self.message_logs.create(
+            sender='system',
+            body="Appointment Canceled."
+        )
 
     def reschedule(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
+        self.message_logs.create(
+            sender='system',
+            body="Appointment Canceled."
+        )
 
     def cancel(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
+        self.message_logs.create(
+            sender='system',
+            body="Appointment Canceled."
+        )
 
     def find_protocols(self):
         """
@@ -671,6 +704,10 @@ class Appointment(models.Model):
 
 
 class Patient(models.Model):
+    LANG_CHOICES = (
+        ('en', 'English'),
+        ('es', 'Spanish')
+    )
     # use as id?? TODO
     account_number = models.CharField(max_length=64)  #          patient account identifier      required    string  unique identifier assigned by the provider patient accounting system (pas) when a patient is admitted or seen for services
     patient_first_name = models.CharField(max_length=255)  #       patient first name              required    string  patient first name as in the clinical system
@@ -680,6 +717,7 @@ class Patient(models.Model):
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
     patient_date_of_birth = models.DateField()
+    lang = models.CharField(max_length=5, choices=LANG_CHOICES, default='en')
 #   # strikes and stuff
 
     def save(self, *args, **kwargs):

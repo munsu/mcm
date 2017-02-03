@@ -97,6 +97,15 @@ class AppointmentUpdateStatusView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('appointments:detail', args=[self.object.id])
 
+    def form_valid(self, form):
+        # TODO get only updated fields
+        message = "\n".join(["{}: {}".format(field, form.data[field]) for field in self.fields])
+        self.object.messages_log.create(
+            sender='system',
+            body='Appointment updated by {}:\n{}'.format(
+                self.request.user, message))
+        return super(AppointmentUpdateStatusView, self).form_valid(form)
+
 
 class ConfirmReportView(views.APIView):
     permission_classes = (permissions.IsAuthenticated, )
@@ -250,6 +259,13 @@ def twilio_reply(request):
             ).last()
         c = m.appointment.client
         r = m.reply_set.create(content=body)
+
+        # TODO place this somewhere else.
+        m.appointment.message_logs.create(
+            sender='patient',
+            body=body)
+
+        # TODO check if there is no messageaction
         if r.message_action is None:
             # not valid
             logger.info("resending tail:{}".format(m.tail))
@@ -267,7 +283,9 @@ def twilio_reply(request):
                        "718-114-2200\n"
                        "Weekdays 8:00am - 7:00pm\n"
                        "Weekends 8:00am - 2:00pm")
-
+        m.appointment.message_logs.create(
+            sender='client',
+            body=ack_msg)
     except Exception as e:
         logger.info(str(e))
     resp = twilio.twiml.Response()
