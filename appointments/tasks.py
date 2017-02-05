@@ -62,6 +62,7 @@ def deliver_message(appointment_message_id):
         return {'status': 'Message or Appointment deleted.'}
     if not appointment.should_receive_messages():
         # stop
+        appointment_message.cancel_send()
         return {'status': 'Patient cancelled.', 'next': None}
     # check time
     logger.info("times:\t{}\t{}".format(timezone.now(), appointment_message.scheduled_delivery_datetime))

@@ -97,6 +97,12 @@ class AppointmentUpdateStatusView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('appointments:detail', args=[self.object.id])
 
+    def get_context_data(self, **kwargs):
+        context = super(AppointmentUpdateStatusView, self).get_context_data(**kwargs)
+        context['queued_messages'] = self.object.messages.filter(
+            twilio_status='queued')
+        return context
+
     def form_valid(self, form):
         # TODO get only updated fields
         message = "\n".join(["{}: {}".format(field, form.data[field]) for field in self.fields])

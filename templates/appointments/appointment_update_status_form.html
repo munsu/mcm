@@ -62,7 +62,7 @@
                     <div class="col-xs-11 col-xs-offset-1">
                       <div class="panel panel-primary">
                         <div class="panel-body">
-                          {{ message.body }}
+                          {{ message.body|linebreaks }}
                         </div>
                         <div class="panel-footer clearfix">
                           <div class="pull-left">
@@ -79,7 +79,7 @@
                     <div class="col-xs-11">
                       <div class="panel panel-default">
                         <div class="panel-body">
-                          {{ message.body }}
+                          {{ message.body|linebreaks }}
                         </div>
                         <div class="panel-footer clearfix">
                           <div class="pull-right">
@@ -99,6 +99,27 @@
                 </div>
               {% empty %}
                 No messages to show
+              {% endfor %}
+
+              {% for message in queued_messages %}
+                <div class="row">
+                  <div class="col-xs-11 col-xs-offset-1">
+                    <div class="panel panel-info">
+                      <div class="panel-body">
+                        {{ message.body|linebreaks }}
+                      </div>
+                      <div class="panel-footer clearfix">
+                        <div class="pull-left">
+                          <!-- TODO dynamic, include queued messages -->
+                          <span class="label label-info">Queued</span>
+                        </div>
+                        <div class="pull-right">
+                          <time class="small" title="{{ message.scheduled_delivery_datetime|date:'r' }}" datetime="{{ message.scheduled_delivery_datetime|date:'c' }}">{{ message.scheduled_delivery_datetime }}</time>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               {% endfor %}
             </div>
           </div>

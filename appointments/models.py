@@ -346,7 +346,6 @@ class Message(TimeStampedModel):
     def send(self):
         """
         Should not be called directly. Will not schedule the next message.
-        TODO create a record of the actual sent message
         """
         from .tasks import tw_send_call, tw_send_sms
         data = {
@@ -378,6 +377,11 @@ class Message(TimeStampedModel):
             raise Exception("Email not yet allowed.")
 
         return self.message_sid
+
+    def cancel_send(self):
+        # TODO what else to put here
+        self.twilio_status = 'undelivered'
+        self.save()
 
     def check_for_action(self, body):
         if self.template.message_type == 'text':
@@ -592,6 +596,7 @@ class Appointment(models.Model):
             datetime = timezone.now()
         # we have to convert this to localtime first else the daydelta becomes a pain
         # to compute
+        # TODO if there's a queued message, watdo
         dday_daydelta = (
             timezone.localtime(timezone.now(), self.timezone).date()
             - self.local_appointment_date.date()
