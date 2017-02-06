@@ -195,7 +195,6 @@ class MessageTemplate(models.Model):
     )
     created_datetime = models.DateTimeField(auto_now_add=True)
     message_type = models.CharField(max_length=255, choices=MESSAGE_TYPES)  # TODO
-    # sample content: "{date}\n{content}"
     content = models.TextField()  # sms
     content_tail = models.TextField(blank=True)
     daydelta = models.DurationField()  # TODO order is separate field
@@ -552,7 +551,7 @@ class Appointment(models.Model):
         self.appointment_confirm_date = timezone.now()
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CONFIRMED
         self.save()
-        self.message_logs.create(
+        self.messages_log.create(
             sender='system',
             body="Appointment Confirmed."
         )
@@ -560,7 +559,7 @@ class Appointment(models.Model):
     def stop(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
-        self.message_logs.create(
+        self.messages_log.create(
             sender='system',
             body="Appointment Canceled."
         )
@@ -568,7 +567,7 @@ class Appointment(models.Model):
     def reschedule(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
-        self.message_logs.create(
+        self.messages_log.create(
             sender='system',
             body="Appointment Canceled."
         )
@@ -576,7 +575,7 @@ class Appointment(models.Model):
     def cancel(self, *args, **kwargs):
         self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
         self.save()
-        self.message_logs.create(
+        self.messages_log.create(
             sender='system',
             body="Appointment Canceled."
         )

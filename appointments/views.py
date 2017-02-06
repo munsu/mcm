@@ -267,7 +267,7 @@ def twilio_reply(request):
         r = m.reply_set.create(content=body)
 
         # TODO place this somewhere else.
-        m.appointment.message_logs.create(
+        m.appointment.messages_log.create(
             sender='patient',
             body=body)
 
@@ -289,7 +289,7 @@ def twilio_reply(request):
                        "718-114-2200\n"
                        "Weekdays 8:00am - 7:00pm\n"
                        "Weekends 8:00am - 2:00pm")
-        m.appointment.message_logs.create(
+        m.appointment.messages_log.create(
             sender='client',
             body=ack_msg)
     except Exception as e:
