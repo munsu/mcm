@@ -1,4 +1,5 @@
 from django.contrib import admin
+from modeltranslation.admin import TranslationAdmin
 from .models import (
     Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message,
     MessageAction, Reply, Constraint, Facility
@@ -46,7 +47,7 @@ class MessageActionInline(admin.StackedInline):
     extra = 1
 
 
-class MessageTemplateAdmin(admin.ModelAdmin):
+class MessageTemplateAdmin(TranslationAdmin):
     list_display = (
         'protocol',
         'message_type',
