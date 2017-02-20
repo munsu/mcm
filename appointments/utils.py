@@ -1,3 +1,14 @@
+from contextlib import contextmanager
+from django.utils import translation
+
+
+@contextmanager
+def language(lang):
+    translation.activate(lang)
+    yield
+    translation.deactivate()
+
+
 def t1_to_t8():
     """
     appointment_facility

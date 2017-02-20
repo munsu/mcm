@@ -12,9 +12,10 @@ from django.forms.models import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 
+from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
-from .utils import flatten_dict
+from .utils import flatten_dict, language
 
 
 logger = logging.getLogger(__name__)
@@ -238,18 +239,26 @@ class MessageLog(TimeStampedModel):
 
 
 class MessageAction(models.Model):
-    ACTION_CHOICES = (
+    ACTION = Choices(
         ('confirm', 'Confirm Appointment'),
         ('stop', 'Stop Sending Further Messages'),  # TODO not sure if this equates to cancelled
         ('reschedule', 'Reschedule Appointment'),
         ('cancel', 'Cancel Appointment'),
+        ('lang', 'Change Patient Preferred Language')
+    )
+    LANG = Choices(
+        ('en', 'English'),
+        ('es', 'Spanish')
     )
     template = models.ForeignKey('MessageTemplate', models.CASCADE, related_name='actions')
     keyword = models.CharField(max_length=160)
-    action = models.CharField(max_length=255, choices=ACTION_CHOICES)
+    action = models.CharField(max_length=255, choices=ACTION)
+    lang = models.CharField(max_length=5, choices=LANG, null=True, blank=True)
+    # TODO validate this
 
     def __str__(self):
         return "{}: {}".format(self.keyword, self.action)
+
 
 
 class Message(TimeStampedModel):
@@ -327,7 +336,8 @@ class Message(TimeStampedModel):
 
     @property
     def body(self):
-        return self.template.message_body.format(**self.appointment.get_data())
+        with language(self.appointment.patient.lang):
+            return self.template.message_body.format(**self.appointment.get_data())
 
     @property
     def tail(self):
@@ -416,7 +426,7 @@ class Reply(TimeStampedModel):
         if self.message_action:
             try:
                 handler = getattr(self.message.appointment, self.message_action.action)
-                handler(message_id=self.message.id)
+                handler(message_id=self.message.id, language=self.message_action.lang)
                 # TODO call handler. somehow pass/record message.id
             except AttributeError:
                 raise NotImplementedError("Missing appointment method: {}".format(self.message_action.action))
@@ -453,20 +463,12 @@ class Appointment(models.Model):
         ('procedure', 'Procedure Appointment'),
         ('inpatient consult', 'Inpatient Consult Appointment'),
     )
-    APPOINTMENT_CONFIRM_CONFIRMED, \
-        APPOINTMENT_CONFIRM_UNCONFIRMED, \
-        APPOINTMENT_CONFIRM_CANCELLED = (
-            'confirmed', 'unconfirmed', 'cancelled')
-    APPOINTMENT_CONFIRM_CHOICES = (
-        (APPOINTMENT_CONFIRM_CONFIRMED, 'Confirmed'),
-        (APPOINTMENT_CONFIRM_UNCONFIRMED, 'Unconfirmed'),
-        (APPOINTMENT_CONFIRM_CANCELLED, 'Cancelled'),
+    APPOINTMENT_CONFIRM = Choices(
+        ('confirmed', 'Confirmed'),
+        ('unconfirmed', 'Unconfirmed'),
+        ('cancelled', 'Cancelled')
     )
-    PATIENT_TYPE_INPATIENT, PATIENT_TYPE_OUTPATIENT = ('inpatient', 'outpatient')
-    PATIENT_TYPE_CHOICES = (
-        (PATIENT_TYPE_INPATIENT, 'Inpatient'),
-        (PATIENT_TYPE_OUTPATIENT, 'Outpatient'),
-    )
+    PATIENT_TYPE = Choices('inpatient', 'outpatient')
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
     # protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
@@ -474,8 +476,8 @@ class Appointment(models.Model):
     # TODO choices
     appointment_confirm_status = models.CharField(
         max_length=64,
-        default=APPOINTMENT_CONFIRM_UNCONFIRMED,
-        choices=APPOINTMENT_CONFIRM_CHOICES)
+        default=APPOINTMENT_CONFIRM.unconfirmed,
+        choices=APPOINTMENT_CONFIRM)
     appointment_confirm_date = models.DateTimeField(null=True, blank=True)
 
     appointment_facility = models.ForeignKey('Facility', models.PROTECT, null=True)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
@@ -544,12 +546,12 @@ class Appointment(models.Model):
 
     def should_receive_messages(self):
         """TODO set this on the patient level."""
-        return self.appointment_confirm_status != self.APPOINTMENT_CONFIRM_CANCELLED
+        return self.appointment_confirm_status != self.APPOINTMENT_CONFIRM.cancelled
 
     def confirm(self, message_id, *args, **kwargs):
         # TODO where to put message_id reference
         self.appointment_confirm_date = timezone.now()
-        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CONFIRMED
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM.confirmed
         self.save()
         self.messages_log.create(
             sender='system',
@@ -557,7 +559,7 @@ class Appointment(models.Model):
         )
 
     def stop(self, *args, **kwargs):
-        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM.cancelled
         self.save()
         self.messages_log.create(
             sender='system',
@@ -565,7 +567,7 @@ class Appointment(models.Model):
         )
 
     def reschedule(self, *args, **kwargs):
-        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM.cancelled
         self.save()
         self.messages_log.create(
             sender='system',
@@ -573,11 +575,20 @@ class Appointment(models.Model):
         )
 
     def cancel(self, *args, **kwargs):
-        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM_CANCELLED
+        self.appointment_confirm_status = self.APPOINTMENT_CONFIRM.cancelled
         self.save()
         self.messages_log.create(
             sender='system',
             body="Appointment Canceled."
+        )
+
+    def lang(self, language, *args, **kwargs):
+        self.patient.lang = language
+        # TODO validate this
+        self.save()
+        self.messages_log.create(
+            sender='system',
+            body="Preferred Language set to {}.".format(language)
         )
 
     def find_protocols(self):
@@ -628,7 +639,7 @@ class Appointment(models.Model):
             self.appointment_scheduled_dt = timezone.make_aware(
                 self.appointment_scheduled_dt, timezone=self.timezone)
         # set confirm date on save
-        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_CONFIRMED and \
+        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM.confirmed and \
                 self.appointment_confirm_date is None:
             self.appointment_confirm_date = timezone.now()
         else:
@@ -661,9 +672,9 @@ class Appointment(models.Model):
 
     def as_row(self):
         color_class = ""
-        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_UNCONFIRMED:
+        if self.appointment_confirm_status == self.APPOINTMENT_CONFIRM.unconfirmed:
             color_class = "bg-warning"
-        elif self.appointment_confirm_status == self.APPOINTMENT_CONFIRM_CANCELLED:
+        elif self.appointment_confirm_status == self.APPOINTMENT_CONFIRM.cancelled:
             color_class = "bg-danger"
         return """
         <tr class="{0}">
@@ -708,7 +719,7 @@ class Appointment(models.Model):
 
 
 class Patient(models.Model):
-    LANG_CHOICES = (
+    LANG = Choices(
         ('en', 'English'),
         ('es', 'Spanish')
     )
@@ -721,7 +732,7 @@ class Patient(models.Model):
     patient_mobile_phone = models.CharField(max_length=64, null=True, blank=True)  #   patient cell or mobile phone number desired string  patient cell or mobile phone number as recorded on the system. if unavailable, leave blank
     patient_email_address = models.EmailField(null=True, blank=True)  #  patient email address           desired     string  patient email address as recorded on the system. if unavailable, leave blank
     patient_date_of_birth = models.DateField()
-    lang = models.CharField(max_length=5, choices=LANG_CHOICES, default='en')
+    lang = models.CharField(max_length=5, choices=LANG, default=LANG.en)
 #   # strikes and stuff
 
     def save(self, *args, **kwargs):
