@@ -86,6 +86,7 @@ class MessageAdmin(admin.ModelAdmin):
     inlines = [
         ReplyInline
     ]
+    readonly_fields = ('created', 'modified')
 
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Client, ClientAdmin)

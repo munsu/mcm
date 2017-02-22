@@ -15,6 +15,7 @@ from django.utils import timezone
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
+from mcm import celery_app
 from .utils import flatten_dict, language
 
 
@@ -471,7 +472,6 @@ class Appointment(models.Model):
     PATIENT_TYPE = Choices('inpatient', 'outpatient')
     client = models.ForeignKey('Client', models.PROTECT)
     patient = models.ForeignKey('Patient', models.PROTECT)
-    # protocol = models.ForeignKey('Protocol', models.SET_NULL, null=True)
     protocols = models.ManyToManyField('Protocol', blank=True)
     # TODO choices
     appointment_confirm_status = models.CharField(
@@ -617,7 +617,7 @@ class Appointment(models.Model):
                 .filter(protocol__in=self.protocols.all(),
                         daydelta__gte=dday_daydelta,
                         time__gte=self.local_appointment_date.time())
-                .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                # .exclude(id__in=self.messages.values_list('template_id', flat=True))
                 .order_by('daydelta', 'time')
                 .first()
             )
@@ -626,7 +626,7 @@ class Appointment(models.Model):
                 MessageTemplate.objects
                 .filter(protocol__in=self.protocols.all(),
                         daydelta__gte=dday_daydelta)
-                .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                # .exclude(id__in=self.messages.values_list('template_id', flat=True))
                 .order_by('daydelta', 'time')
                 .first()
             )
@@ -650,24 +650,30 @@ class Appointment(models.Model):
         self.schedule_next_message()
 
     def schedule_next_message(self):
-        # TODO revoke the task if it hasn't been sent yet.
+        # check for queued messages
+        for message in self.messages.filter(twilio_status='queued'):
+            try:
+                message.twilio_status = 'undelivered'
+                message.save()
+                celery_app.control.revoke(message.task_id)
+            except Exception, e:
+                logger.info("REVOKE")
+                logger.error(str(e))
+
         template = self.get_next_template()
-        logger.info("found template {} for {}".format(template, self.__str__))
+        logger.info("found template {} for {}".format(template, self.__str__()))
         if template:
-            message, created = self.messages.get_or_create(
-                template=template)
-            if created:
-                message.twilio_status = 'queued'
-                message.save()
-                # TODO store task id somewhere
-                from .tasks import deliver_message
-                logger.info("scheduling message for {} to be sent at {}".format(
-                    self.__str__(), message.scheduled_delivery_datetime))
-                task_id = deliver_message.apply_async(
-                    (message.id,), eta=message.scheduled_delivery_datetime)
-                message.task_id = task_id
-                message.save()
-                return task_id
+            message = self.messages.create(
+                template=template,
+                twilio_status='queued')
+            from .tasks import deliver_message
+            logger.info("scheduling message for {} to be sent at {}".format(
+                self.__str__(), message.scheduled_delivery_datetime))
+            task_id = deliver_message.apply_async(
+                (message.id,), eta=message.scheduled_delivery_datetime)
+            message.task_id = task_id
+            message.save()
+            return task_id
         return None
 
     def as_row(self):

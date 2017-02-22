@@ -284,6 +284,12 @@ def twilio_reply(request):
                        "Weekdays 8:00am - 7:00pm\n"
                        "Weekends 8:00am - 2:00pm")
         elif r.message_action.action == 'cancel':
+            """
+            provider
+            phone numbers
+            hours
+            """
+
             ack_msg = ("We're sorry to hear that - We can connect you to "
                        "our office and reschedule your appointment at\n"
                        "718-114-2200\n"
