@@ -311,6 +311,7 @@ class Message(TimeStampedModel):
     template = models.ForeignKey('MessageTemplate', models.CASCADE)
     appointment = models.ForeignKey(
         'Appointment', models.CASCADE, related_name='messages')
+    for_appointment_date = models.DateTimeField()
     twilio_status = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
     twilio_error = models.CharField(
@@ -650,30 +651,22 @@ class Appointment(models.Model):
         self.schedule_next_message()
 
     def schedule_next_message(self):
-        # check for queued messages
-        for message in self.messages.filter(twilio_status='queued'):
-            try:
-                message.twilio_status = 'undelivered'
-                message.save()
-                celery_app.control.revoke(message.task_id)
-            except Exception, e:
-                logger.info("REVOKE")
-                logger.error(str(e))
-
         template = self.get_next_template()
         logger.info("found template {} for {}".format(template, self.__str__()))
         if template:
-            message = self.messages.create(
+            message, created = self.messages.get_or_create(
                 template=template,
-                twilio_status='queued')
-            from .tasks import deliver_message
-            logger.info("scheduling message for {} to be sent at {}".format(
-                self.__str__(), message.scheduled_delivery_datetime))
-            task_id = deliver_message.apply_async(
-                (message.id,), eta=message.scheduled_delivery_datetime)
-            message.task_id = task_id
-            message.save()
-            return task_id
+                for_appointment_date=self.appointment_date,
+                defaults={'twilio_status': 'queued'})
+            if created:
+                from .tasks import deliver_message
+                logger.info("scheduling message for {} to be sent at {}".format(
+                    self.__str__(), message.scheduled_delivery_datetime))
+                task_id = deliver_message.apply_async(
+                    (message.id,), eta=message.scheduled_delivery_datetime)
+                message.task_id = task_id
+                message.save()
+                return task_id
         return None
 
     def as_row(self):
