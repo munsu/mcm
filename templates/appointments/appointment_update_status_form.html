@@ -99,7 +99,9 @@
                   {% endif %}
                 </div>
               {% empty %}
-                No messages to show
+                {% if not queued_messages %}
+                  No messages to show
+                {% endif %}
               {% endfor %}
 
               {% for message in queued_messages %}
