@@ -276,14 +276,14 @@ def twilio_reply(request):
             # not valid
             logger.info("resending tail:{}".format(m.tail))
             ack_msg = m.tail
-        elif r.message_action.action == 'confirm':
+        elif r.message_action.action == MessageAction.ACTION.confirm:
             ack_msg = "Thank you for confirming the appointment."
-        elif r.message_action.action == 'reschedule':
+        elif r.message_action.action == MessageAction.ACTION.reschedule:
             ack_msg = ("Doctor's Office\n"
                        "718-114-2200\n"
                        "Weekdays 8:00am - 7:00pm\n"
                        "Weekends 8:00am - 2:00pm")
-        elif r.message_action.action == 'cancel':
+        elif r.message_action.action == MessageAction.ACTION.cancel:
             """
             provider
             phone numbers
@@ -295,6 +295,8 @@ def twilio_reply(request):
                        "718-114-2200\n"
                        "Weekdays 8:00am - 7:00pm\n"
                        "Weekends 8:00am - 2:00pm")
+        elif r.message_action.action == MessageAction.ACTION.lang:
+            ack_msg = m.body
         m.appointment.messages_log.create(
             sender='client',
             body=ack_msg)
