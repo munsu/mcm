@@ -586,7 +586,7 @@ class Appointment(models.Model):
     def lang(self, language, *args, **kwargs):
         self.patient.lang = language
         # TODO validate this
-        self.save()
+        self.patient.save()
         self.messages_log.create(
             sender='system',
             body="Preferred Language set to {}.".format(language)
