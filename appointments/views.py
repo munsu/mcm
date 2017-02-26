@@ -123,7 +123,7 @@ class ConfirmReportView(views.APIView):
         dates = [now.date() + timedelta(days=n) for n in range(num_days)]
         datasets = {
             status[0]: [0] * num_days
-            for status in Appointment.APPOINTMENT_CONFIRM_CHOICES
+            for status in Appointment.APPOINTMENT_CONFIRM
         }
         totals = [0] * num_days
         confirmations = (
