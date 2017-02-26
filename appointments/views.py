@@ -301,7 +301,7 @@ def twilio_reply(request):
             sender='client',
             body=ack_msg)
     except Exception as e:
-        logger.info(str(e))
+        logger.info(e)
     resp = twilio.twiml.Response()
     resp.message(msg=ack_msg, sender=settings.TWILIO_NUMBER)
     return HttpResponse(resp)
