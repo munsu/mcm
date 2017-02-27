@@ -7,6 +7,9 @@
     margin-bottom: 20px;
     font-size: 0.9em;
   }
+  #appointment-messages .well {
+    overflow-y: scroll;
+  }
 </style>
 {% endblock extrastyle %}
 {% block content %}
@@ -15,7 +18,7 @@
       <div class="col-xs-12">
         <h2>Appointment #{{ object.appointment_number }}: {{ object.patient.name }} - <time title="{{ object.appointment_date|date:'r' }}" datetime="{{ object.appointment_date|date:'c' }}">{{ object.appointment_date }}</time></h2>
         <div class="row">
-          <div class="col-xs-12 col-md-7">
+          <div id="appointment-details" class="col-xs-12 col-md-7">
             <form method="post" action="">
               {% csrf_token %}
               {{ form.non_field_errors }}
@@ -54,9 +57,9 @@
               <button type="submit" class="btn btn-default pull-right">Submit</button>
             </form>
           </div>
-          <div class="col-xs-12 col-md-5">
+          <div id="appointment-messages" class="col-xs-12 col-md-5">
             <h4>Messages</h4>
-            <div class="well">
+            <div class="well hidden">
               {% for message in object.messages_log.all %}
                 <div class="row">
                   {% if message.sender == 'client' %}
@@ -131,3 +134,15 @@
     </div>
   </div>
 {% endblock content %}
+
+{% block extrascript %}
+  <script type="text/javascript">
+    $(document).ready(function(){
+      var h = $("#appointment-details").height()
+      $("#appointment-messages .well").height(h - 80);
+      var d = $("#appointment-messages .well");
+      d.removeClass("hidden");
+      d.scrollTop(d.prop("scrollHeight"));
+    });
+  </script>
+{% endblock extrascript %}
