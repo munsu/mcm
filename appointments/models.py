@@ -235,6 +235,9 @@ class MessageLog(TimeStampedModel):
     sender = models.CharField(max_length=7, choices=SENDER_CHOICES)
     body = models.TextField()
 
+    class Meta:
+        ordering = ['created', ]
+
     def __str__(self):
         return "[{}] {}: {}".format(self.appointment, self.sender, self.body)
 
