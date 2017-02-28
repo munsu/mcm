@@ -669,7 +669,7 @@ class Appointment(models.Model):
 
     def schedule_next_message(self):
         # check if no messages are queued first
-        if not self.messages.filter(twilio_status=Message.TWILIO_STATUS.queued).exists():
+        if self.messages.filter(twilio_status=Message.TWILIO_STATUS.queued).exists():
             logger.info("found message already queued. Skipping schedule_next_message")
             return None
         template = self.get_next_template()
