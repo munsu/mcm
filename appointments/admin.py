@@ -2,7 +2,7 @@ from django.contrib import admin
 from modeltranslation.admin import TranslationAdmin
 from .models import (
     Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message,
-    MessageAction, Reply, Constraint, Facility
+    MessageAction, MessageLog, Reply, Constraint, Facility
 )
 
 
@@ -39,6 +39,10 @@ class PatientAdmin(admin.ModelAdmin):
 
 
 class AppointmentAdmin(admin.ModelAdmin):
+    pass
+
+
+class MessageLogAdmin(admin.ModelAdmin):
     pass
 
 
@@ -94,4 +98,5 @@ admin.site.register(Patient, PatientAdmin)
 admin.site.register(Protocol, ProtocolAdmin)
 admin.site.register(MessageTemplate, MessageTemplateAdmin)
 admin.site.register(Message, MessageAdmin)
+admin.site.register(MessageLog, MessageLogAdmin)
 admin.site.register(Appointment, AppointmentAdmin)

@@ -100,7 +100,7 @@ class AppointmentUpdateStatusView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super(AppointmentUpdateStatusView, self).get_context_data(**kwargs)
         context['queued_messages'] = self.object.messages.filter(
-            twilio_status='queued')
+            twilio_status=Message.TWILIO_STATUS.queued)
         return context
 
     def form_valid(self, form):
@@ -261,7 +261,7 @@ def twilio_reply(request):
         to = request.GET.get('To', None)  # TODO integrate this
         m = Message.objects.filter(
             appointment__patient__patient_mobile_phone=from_number,
-            twilio_status='delivered',
+            twilio_status=Message.TWILIO_STATUS.delivered,
             ).last()
         c = m.appointment.client
         r = m.reply_set.create(content=body)

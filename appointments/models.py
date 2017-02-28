@@ -116,6 +116,12 @@ class Facility(models.Model):
         return self.name
 
 
+# class Provider(models.Model):
+#     name = models.CharField(max_length=)
+#     office_hours
+#     contact_details
+
+
 class Constraint(models.Model):
     LOOKUP_TYPE_CHOICES = (
         ('exact', 'exact'),
@@ -292,7 +298,7 @@ class Message(TimeStampedModel):
     undelivered Twilio has received a delivery receipt indicating that the message was not delivered. This can happen for a number of reasons including carrier content filtering, availability of the destination handset, etc.
     failed  The message could not be sent. This can happen for various reasons including queue overflows, account suspensions and media errors (in the case of MMS). Twilio does not charge you for failed messages.
     """
-    TWILIO_STATUS_CHOICES = (
+    TWILIO_STATUS = Choices(
         ('queued', 'Queued'),
         ('failed', 'Failed'),
         ('sent', 'Sent'),
@@ -316,7 +322,7 @@ class Message(TimeStampedModel):
         'Appointment', models.CASCADE, related_name='messages')
     for_appointment_date = models.DateTimeField()
     twilio_status = models.CharField(
-        max_length=64, blank=True, null=True, choices=TWILIO_STATUS_CHOICES)
+        max_length=64, blank=True, null=True, choices=TWILIO_STATUS)
     twilio_error = models.CharField(
         max_length=64, blank=True, null=True, choices=TWILIO_ERROR_CHOICES)
     message_sid =  models.CharField(
@@ -371,7 +377,7 @@ class Message(TimeStampedModel):
             data['body'] = self.body
             try:
                 self.message_sid = tw_send_sms(**data)  # TODO doesn't error?
-                self.twilio_status = 'delivered'
+                self.twilio_status = Message.TWILIO_STATUS.delivered
                 self.appointment.messages_log.create(
                     sender='client',
                     body=self.body)
@@ -383,7 +389,7 @@ class Message(TimeStampedModel):
             try:
                 data['url'] = self.get_voice_url()
                 self.message_sid = tw_send_call(**data)
-                self.twilio_status = 'delivered'
+                self.twilio_status = Message.TWILIO_STATUS.delivered
             except Exception, e:
                 logger.warning(e)
             self.save()
@@ -394,7 +400,7 @@ class Message(TimeStampedModel):
 
     def cancel_send(self):
         # TODO what else to put here
-        self.twilio_status = 'undelivered'
+        self.twilio_status = Message.TWILIO_STATUS.undelivered
         self.save()
 
     def check_for_action(self, body):
@@ -621,7 +627,11 @@ class Appointment(models.Model):
                 .filter(protocol__in=self.protocols.all(),
                         daydelta__gte=dday_daydelta,
                         time__gte=self.local_appointment_date.time())
-                # .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                .exclude(id__in=(
+                            self.messages
+                            .filter(for_appointment_date=self.appointment_date)
+                            .values_list('template_id', flat=True)
+                            ))
                 .order_by('daydelta', 'time')
                 .first()
             )
@@ -630,7 +640,11 @@ class Appointment(models.Model):
                 MessageTemplate.objects
                 .filter(protocol__in=self.protocols.all(),
                         daydelta__gte=dday_daydelta)
-                # .exclude(id__in=self.messages.values_list('template_id', flat=True))
+                .exclude(id__in=(
+                            self.messages
+                            .filter(for_appointment_date=self.appointment_date)
+                            .values_list('template_id', flat=True)
+                            ))
                 .order_by('daydelta', 'time')
                 .first()
             )
@@ -654,13 +668,17 @@ class Appointment(models.Model):
         self.schedule_next_message()
 
     def schedule_next_message(self):
+        # check if no messages are queued first
+        if not self.messages.filter(twilio_status=Message.TWILIO_STATUS.queued).exists():
+            logger.info("found message already queued. Skipping schedule_next_message")
+            return None
         template = self.get_next_template()
         logger.info("found template {} for {}".format(template, self.__str__()))
         if template:
             message, created = self.messages.get_or_create(
                 template=template,
                 for_appointment_date=self.appointment_date,
-                defaults={'twilio_status': 'queued'})
+                defaults={'twilio_status': Message.TWILIO_STATUS.queued})
             if created:
                 from .tasks import deliver_message
                 logger.info("scheduling message for {} to be sent at {}".format(
