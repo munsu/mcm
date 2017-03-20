@@ -46,9 +46,9 @@
                 <dt>Procedure Description</dt><dd>{{ object.procedure_description }}</dd>
                 <dt>Scheduled Room</dt><dd>{{ object.scheduled_room }}</dd>
                 <dt>Scheduled Duration</dt><dd>{{ object.scheduled_duration }}</dd>
-                <dt>Provider ID</dt><dd>{{ object.provider_id }}</dd>
-                <dt>Provider NPI ID</dt><dd>{{ object.provider_npi_id }}</dd>
-                <dt>Provider Specialty</dt><dd>{{ object.provider_specialty }}</dd>
+                <dt>Provider ID</dt><dd>{{ object.appointment_provider.provider_id }}</dd>
+                <dt>Provider NPI ID</dt><dd>{{ object.appointment_provider.provider_npi_id }}</dd>
+                <dt>Provider Specialty</dt><dd>{{ object.appointment_provider.provider_specialty }}</dd>
                 <dt>Patient Type</dt><dd>{{ object.patient_type }}</dd>
                 <dt>ASA Rating</dt><dd>{{ object.asa_rating }}</dd>
                 <dt>ASA CD</dt><dd>{{ object.asa_cd }}</dd>

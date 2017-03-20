@@ -93,6 +93,8 @@ class Client(models.Model):
     address = models.TextField()
     # we want this to unique to each client eventually.
     twilio_number = models.CharField(max_length=16, default='+15702343621')
+    office_hours = models.TextField()
+    contact_details = models.TextField()
 
     def __str__(self):
         return self.name
@@ -116,10 +118,28 @@ class Facility(models.Model):
         return self.name
 
 
-# class Provider(models.Model):
-#     name = models.CharField(max_length=)
-#     office_hours
-#     contact_details
+class Provider(models.Model):
+    client = models.ForeignKey('Client', models.PROTECT)
+    name = models.CharField(max_length=128)
+    provider_id = models.CharField(max_length=64, null=True, blank=True)  #            physician id                    optional    string  employee number for the primary surgeon. must match to physician id in patient accounting system.
+    provider_npi_id = models.CharField(max_length=64)  #        physician npi id                optional    string  national provider identification for the primary provider.
+    provider_specialty = models.CharField(max_length=64, null=True, blank=True)  #   surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
+    office_hours = models.TextField(null=True, blank=True)
+    contact_details = models.TextField(null=True, blank=True)
+
+    @property
+    def get_office_hours(self):
+        return self.office_hours or self.client.office_hours
+
+    @property
+    def get_contact_details(self):
+        return self.contact_details or self.client.contact_details
+
+    class Meta:
+        unique_together = ('client', 'provider_npi_id')
+
+    def __str__(self):
+        return self.name
 
 
 class Constraint(models.Model):
@@ -352,7 +372,8 @@ class Message(TimeStampedModel):
 
     @property
     def tail(self):
-        return self.template.message_tail.format(**self.appointment.get_data())
+        with language(self.appointment.patient.lang):
+            return self.template.message_tail.format(**self.appointment.get_data())
 
     def get_voice_url(self):
         """
@@ -493,7 +514,7 @@ class Appointment(models.Model):
     appointment_facility = models.ForeignKey('Facility', models.PROTECT, null=True)  #    facility name                   required    string  facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
     # appointment_facility = models.CharField(max_length=255)  # temporary for demo
     appointment_number = models.CharField(max_length=64)  #     appointment or procedure number required    string  uniquely identifies an appointment or procedure within the health system
-    appointment_provider = models.CharField(max_length=255)  #   primary provider, surgeon       required    string  the primary care provider or surgeon of record for this appointment
+    appointment_provider = models.ForeignKey('Provider', models.PROTECT, null=True)  #   primary provider, surgeon       required    string  the primary care provider or surgeon of record for this appointment
     appointment_scheduled_service = models.CharField(max_length=255)  #  service                 required    string  service under which the appointment is scheduled (e.g., orthopedics, ent, open heart, etc.)
     appointment_status = models.CharField(max_length=64)  #     actual appointment status       required    string  status of the appointment - only scheduled appointments should be collected here.
     appointment_date = models.DateTimeField()  #     appointment or procedure date   required    yyyy-mm-dd hh:mm:ss date of appointment.  the daily upload should include t+1 through t+8
@@ -509,10 +530,10 @@ class Appointment(models.Model):
     scheduled_room = models.CharField(max_length=64)  #         scheduled operating room or procedure room  required    string  procedure, operating or exam room into which this case or appointment was scheduled
     # TODO or daterange or string or durationfield lol
     scheduled_duration = models.CharField(max_length=64)  #  scheduled procedure duration    required    string  how long procedure, operation or appointment scheduled to last for
-    provider_id = models.CharField(max_length=64, null=True, blank=True)  #            physician id                    optional    string  employee number for the primary surgeon. must match to physician id in patient accounting system.
-    provider_npi_id = models.CharField(max_length=64, null=True, blank=True)  #        physician npi id                optional    string  national provider identification for the primary provider.
+    # provider_id = models.CharField(max_length=64, null=True, blank=True)  #            physician id                    optional    string  employee number for the primary surgeon. must match to physician id in patient accounting system.
+    # provider_npi_id = models.CharField(max_length=64)  #        physician npi id                optional    string  national provider identification for the primary provider.
 
-    provider_specialty = models.CharField(max_length=64, null=True, blank=True)  #   surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
+    # provider_specialty = models.CharField(max_length=64, null=True, blank=True)  #   surgeon specialty               optional    string  specialty of the primary provider or surgeon on the appointment or case
 
     # Patient stuff but changes per appointment
     patient_type = models.CharField(max_length=64)  #            patient type                    required    string  inpatient - surgery admit / outpatient status of patient
@@ -551,6 +572,7 @@ class Appointment(models.Model):
         data['patient'] = model_to_dict(self.patient)
         data['client'] = model_to_dict(self.client)
         data['appointment_facility'] = model_to_dict(self.appointment_facility)
+        data['appointment_provider'] = model_to_dict(self.appointment_provider)
         data['protocols'] = list(self.protocols.values_list('name', flat=True))
         return flatten_dict(data)
 
@@ -727,7 +749,7 @@ class Appointment(models.Model):
         self.patient.patient_email_address,
         self.get_appointment_confirm_status_display(),
         self.procedure_description,
-        self.appointment_provider,
+        self.appointment_provider.name,
         reverse('appointments:detail', args=[self.pk])).replace('\n', '')
 
     def __str__(self):

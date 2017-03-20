@@ -5,7 +5,7 @@ from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
 from .models import (
     Appointment, Patient, Facility, Client, Protocol, MessageTemplate, MessageAction,
-    Constraint
+    Constraint, Provider
 )
 
 
@@ -90,12 +90,24 @@ class AppointmentSerializer(serializers.Serializer):
             client=validated_data.get('client'),
             name=validated_data.get("appointment_facility"))
 
+        # hotfix for provider name. this should be somewhere else.
+        validated_data['name'] = validated_data['appointment_provider']
+        provider_fields = [f.name for f in Provider._meta.local_fields]
+        provider_data = {k: validated_data.get(k)
+                         for k in provider_fields
+                         if validated_data.get(k)}
+        provider, _ = Provider.objects.update_or_create(
+            provider_npi_id=provider_data.pop('provider_npi_id'),
+            defaults=provider_data)
+
         appointment_fields = [f.name for f in Appointment._meta.local_fields]
         appointment_data = {k: validated_data.get(k)
                             for k in appointment_fields
                             if validated_data.get(k)}
         appointment_data['patient'] = patient
         appointment_data['appointment_facility'] = facility
+        appointment_data['appointment_provider'] = provider
+
         # relocate
         appointment_updatable_fields = [
             'appointment_date',

@@ -12,7 +12,7 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.utils import timezone
-
+from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
@@ -29,6 +29,7 @@ from .forms import AppointmentsUploadForm
 from .models import Appointment, Protocol, Message, MessageAction
 from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
+from .utils import language
 
 logger = logging.getLogger(__name__)
 
@@ -277,24 +278,26 @@ def twilio_reply(request):
             logger.info("resending tail:{}".format(m.tail))
             ack_msg = m.tail
         elif r.message_action.action == MessageAction.ACTION.confirm:
-            ack_msg = "Thank you for confirming the appointment."
+            with language(self.appointment.patient.lang):
+                ack_msg = _("Thank you for confirming the appointment.")
         elif r.message_action.action == MessageAction.ACTION.reschedule:
-            ack_msg = ("Doctor's Office\n"
-                       "718-114-2200\n"
-                       "Weekdays 8:00am - 7:00pm\n"
-                       "Weekends 8:00am - 2:00pm")
+            with language(self.appointment.patient.lang):
+                ack_msg = _("Doctor's Office\n{}\n{}")
+                ack_msg = ack_msg.format(
+                    m.appointment.appointment_provider.get_contact_details,
+                    m.appointment.appointment_provider.get_office_hours)
         elif r.message_action.action == MessageAction.ACTION.cancel:
             """
             provider
             phone numbers
             hours
             """
-
-            ack_msg = ("We're sorry to hear that - We can connect you to "
-                       "our office and reschedule your appointment at\n"
-                       "718-114-2200\n"
-                       "Weekdays 8:00am - 7:00pm\n"
-                       "Weekends 8:00am - 2:00pm")
+            with language(self.appointment.patient.lang):
+                ack_msg = _("We're sorry to hear that - We can connect you to "
+                           "our office and reschedule your appointment at\n{}\n{}")
+                ack_msg = ack_msg.format(
+                    m.appointment.appointment_provider.get_contact_details,
+                    m.appointment.appointment_provider.get_office_hours)
         elif r.message_action.action == MessageAction.ACTION.lang:
             ack_msg = m.body
         m.appointment.messages_log.create(
