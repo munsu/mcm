@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import traceback
 import twilio.twiml
 
 from datetime import timedelta
@@ -278,10 +279,10 @@ def twilio_reply(request):
             logger.info("resending tail:{}".format(m.tail))
             ack_msg = m.tail
         elif r.message_action.action == MessageAction.ACTION.confirm:
-            with language(self.appointment.patient.lang):
+            with language(m.appointment.patient.lang):
                 ack_msg = _("Thank you for confirming the appointment.")
         elif r.message_action.action == MessageAction.ACTION.reschedule:
-            with language(self.appointment.patient.lang):
+            with language(m.appointment.patient.lang):
                 ack_msg = _("Doctor's Office\n{}\n{}")
                 ack_msg = ack_msg.format(
                     m.appointment.appointment_provider.get_contact_details,
@@ -292,9 +293,9 @@ def twilio_reply(request):
             phone numbers
             hours
             """
-            with language(self.appointment.patient.lang):
+            with language(m.appointment.patient.lang):
                 ack_msg = _("We're sorry to hear that - We can connect you to "
-                           "our office and reschedule your appointment at\n{}\n{}")
+                            "our office and reschedule your appointment at\n{}\n{}")
                 ack_msg = ack_msg.format(
                     m.appointment.appointment_provider.get_contact_details,
                     m.appointment.appointment_provider.get_office_hours)
@@ -305,6 +306,7 @@ def twilio_reply(request):
             body=ack_msg)
     except Exception as e:
         logger.info(e)
+        logger.error(traceback.format_exc())
     resp = twilio.twiml.Response()
     resp.message(msg=ack_msg, sender=settings.TWILIO_NUMBER)
     return HttpResponse(resp)
