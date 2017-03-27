@@ -276,7 +276,7 @@ def twilio_reply(request):
         # TODO check if there is no messageaction
         if r.message_action is None:
             # not valid
-            logger.info("resending tail:{}".format(m.tail))
+            logger.info(u"resending tail:{}".format(m.tail))
             ack_msg = m.tail
         elif r.message_action.action == MessageAction.ACTION.confirm:
             with language(m.appointment.patient.lang):
