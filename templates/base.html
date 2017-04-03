@@ -44,7 +44,7 @@
                     <li class="{% active_class request 'canceled' %}">
                       <a href="{% url 'canceled' %}">Canceled</a>
                     </li>
-                    <li class="{% active_class request 'protocols:manage' %}"><a href="{% url 'protocols:manage' %}">Manage Protocols</a></li>
+                    <li class="{% active_class request 'protocols:list' %}"><a href="{% url 'protocols:list' %}">Manage Protocols</a></li>
                     <li class="{% active_class request 'appointments:upload:csv' %}"><a href="{% url 'appointments:upload:csv' %}">Upload CSV</a></li>
                     <li class="{% active_class request 'reports-tab' %}">
                       <a href="{% url 'reports-tab' %}">Reports</a>

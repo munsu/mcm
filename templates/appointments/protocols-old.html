@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-8 col-xs-12 col-sm-offset-2 col-xs-offset-0">
+        <div class="panel panel-default">
+          <div class="panel-heading">Protocols</div>
+          <div class="panel-body">
+            <form id="protocol-form" method="post" action="#">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+{% block extrascript %}
+<script type="text/javascript">
+  $.getJSON("{% url 'protocols:protocols-list' %}", function(json) {
+    console.log(json)
+    $('form').jsonForm({
+      schema: {
+        protocols: {
+          type: 'array',
+          items: {
+            type: 'object',
+            title: 'Protocol',
+            properties: {
+              name: {
+                type: 'string',
+                title: 'Name',
+                required: true
+              },
+              priority: {
+                type: 'integer',
+                title: 'Priority',
+                required: true
+              },
+              rule: {
+                type: 'string',
+                title: 'Rule',
+                required: true
+              },
+              templates: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  title: 'Message Template',
+                  properties: {
+                    message_type: {
+                      type: 'string',
+                      title: 'Type',
+                      enum: ['email', 'text', 'call'],
+                      default: 'text',
+                      required: true
+                    },
+                    content: {
+                      type: 'string',
+                      title: 'Content',
+                      required: true
+                    },
+                    timedelta: {
+                      type: 'string',
+                      title: 'Time Delta',
+                      required: true
+                    },
+                    actions: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        title: 'Message Actions',
+                        properties: {
+                          keyword: {
+                            type: 'string',
+                            title: 'Keyword',
+                            required: true
+                          },
+                          action: {
+                            type: 'string',
+                            title: 'Action',
+                            enum: ['confirm', 'stop', 'reschedule', 'cancel']
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      form: [
+        {
+          key: "protocols",
+          type: "array",
+          items: {
+            type: "fieldset",
+            items: [
+              {
+                key: "protocols[].name",
+                fieldHtmlClass: "form-control"
+              },
+              {
+                key: "protocols[].priority",
+                fieldHtmlClass: "form-control"
+              },
+              {
+                key: "protocols[].rule",
+                fieldHtmlClass: "form-control"
+              },
+              {
+                key: "protocols[].templates",
+                type: "array",
+                items: {
+                  type: "section",
+                  items: [
+                    {
+                      key: "protocols[].templates[].message_type",
+                      fieldHtmlClass: "form-control"
+                    },
+                    {
+                      key: "protocols[].templates[].content",
+                      fieldHtmlClass: "form-control",
+                      type: "textarea"
+                    },
+                    {
+                      key: "protocols[].templates[].timedelta",
+                      fieldHtmlClass: "form-control"
+                    },
+                    {
+                      key: "protocols[].templates[].actions",
+                      type: "array",
+                      items: {
+                        type: "section",
+                        items: [
+                          {
+                            key: "protocols[].templates[].actions[].keyword",
+                            fieldHtmlClass: "form-control"
+                          },
+                          {
+                            key: "protocols[].templates[].actions[].action",
+                            fieldHtmlClass: "form-control"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+              }
+            ]
+          }
+        }
+        // ,
+        // {
+        //   "type": "submit",
+        //   "title": "Save"
+        // }
+      ],
+      value: {
+        protocols: json
+      },
+      onSubmit: function (errors, values) {
+        if (errors) {
+          alert('Check the form for invalid values!');
+          return;
+        }
+        // "values" follows the schema, yeepee!
+        console.log(values + " " + values.protocols.length);
+        $.each(values.protocols, function(i, v) {
+          v.csrfmiddlewaretoken = "{{ csrf_token }}";
+          $.ajax({
+            type: "post",
+            url: "http://localhost:8000/p/r/otocols/",
+            contentType: "application/json",
+            data: JSON.stringify(v),
+            headers: {"X-CSRF-Token": "{{ csrf_token }}"},
+            success: function(data, textStatus, jqXHR) {
+              console.log(data + " " + textStatus);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.log(errorThrown + " " + textStatus);
+              console.log(jqXHR)
+            }
+          });
+        });
+      }
+    });
+  });
+
+</script>
+{% endblock extrascript %}

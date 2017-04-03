@@ -203,6 +203,9 @@ class Protocol(models.Model):
     def constraints_dict(self):
         return {'$' + str(c.id): c.as_q_str() for c in self.constraints.all()}
 
+    def get_absolute_url(self):
+        return reverse("protocols:detail", args=[self.pk])
+
     def __str__(self):
         return self.name
 

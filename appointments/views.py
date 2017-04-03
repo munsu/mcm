@@ -19,6 +19,8 @@ from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
 
 from braces.views import JSONResponseMixin
+# from extra_views import FormSetView
+from extra_views import CreateWithInlinesView, UpdateWithInlinesView, InlineFormSet
 from rest_framework import exceptions as drf_exceptions
 from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.authentication import BasicAuthentication
@@ -26,8 +28,8 @@ from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
-from .forms import AppointmentsUploadForm
-from .models import Appointment, Protocol, Message, MessageAction
+from .forms import AppointmentsUploadForm, MessageTemplateForm, ProtocolForm
+from .models import Appointment, Protocol, Message, MessageAction, Constraint, MessageTemplate
 from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
 from .utils import language
@@ -248,8 +250,57 @@ class ProtocolsViewSet(viewsets.GenericViewSet):
             return {}
 
 
-class ManageProtocolsView(TemplateView):
-    template_name = 'appointments/protocols.html'
+class ProtocolsListView(ListView):
+    template_name = 'appointments/protocols-list.html'
+    model = Protocol
+
+    def get_queryset(self):
+        return self.model.objects.filter(clients=self.request.user.profile.client)
+
+
+class ConstraintsInline(InlineFormSet):
+    model = Constraint
+    fields = '__all__'
+    extra = 1
+
+class MessageActionInline(InlineFormSet):
+    model = MessageAction
+    fields = '__all__'
+    extra = 1
+
+class ProtocolsDetailView(UpdateWithInlinesView):
+    template_name = 'appointments/protocols-detail.html'
+    model = Protocol
+    fields = ('name', 'priority', 'constraint_relationship',)
+    inlines = [ConstraintsInline]
+
+    def get_context_data(self, **kwargs):
+        context = super(ProtocolsDetailView, self).get_context_data(**kwargs)
+        context['message_templates'] = self.get_object().templates.all()
+        return context
+
+class MessageTemplatesListView(ListView):
+    template_name = 'appointments/templates-list.html'
+    model = MessageTemplate
+
+    def get_queryset(self):
+        return self.model.objects.filter(protocol__clients=self.request.user.profile.client)
+
+
+class MessageTemplatesDetailView(UpdateWithInlinesView):
+    template_name = 'appointments/templates-detail.html'
+    model = MessageTemplate
+    # fields = '__all__'
+    # exclude = ('content', 'content_tail')
+    form_class = MessageTemplateForm
+    inlines = [MessageActionInline]
+
+class ManageProtocolsView(UpdateWithInlinesView):
+    template_name = 'appointments/protocols-list.html'
+    model = Protocol
+
+    # def get_queryset(self):
+    #     return self.model.objects.filter(clients=self.request.user.profile.client)
 
 
 def twilio_reply(request):

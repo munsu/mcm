@@ -43,6 +43,10 @@ appointments = [
 
 protocols = [
     url(r'^r/', include(protocol_router.urls)),
+    url(r'^$', views.ProtocolsListView.as_view(), name='list'),
+    url(r'^(?P<pk>\d+)/$', views.ProtocolsDetailView.as_view(), name='detail'),
+    url(r'^t/$', views.MessageTemplatesListView.as_view(), name='templates-list'),
+    url(r'^t/(?P<pk>\d+)/$', views.MessageTemplatesDetailView.as_view(), name='templates-detail'),
     url(r'^rotocols/$', views.ManageProtocolsView.as_view(), name='manage'),
 ]
 
