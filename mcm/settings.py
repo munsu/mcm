@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'appointments.apps.AppointmentsConfig',
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [
@@ -179,6 +180,8 @@ CELERY_IMPORTS = ('appointments.tasks', )
 # CELERY_RESULT_BACKEND = 'db+sqlite:///results.db'
 
 # CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 LOGGING = {
     'version': 1,
