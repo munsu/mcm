@@ -19,6 +19,7 @@ from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
 
 from braces.views import JSONResponseMixin
+from crispy_forms.helper import FormHelper
 # from extra_views import FormSetView
 from extra_views import CreateWithInlinesView, UpdateWithInlinesView, InlineFormSet
 from rest_framework import exceptions as drf_exceptions
@@ -262,6 +263,7 @@ class ConstraintsInline(InlineFormSet):
     model = Constraint
     fields = '__all__'
     extra = 1
+
 
 class MessageActionInline(InlineFormSet):
     model = MessageAction

@@ -13,7 +13,9 @@
               <h4>Protocol</h4>
               {{ form|crispy }}
               <h4>Constraints</h4>
+              <div class="form-inline">
               {{ inlines.0|crispy }}
+              </div>
               <h4>Message Templates</h4>
               <ul>
               {% for message_template in message_templates %}
