@@ -250,6 +250,9 @@ class MessageTemplate(models.Model):
             print e
             pass
 
+    def get_absolute_url(self):
+        return reverse('protocols:templates-detail', args=[self.protocol.id, self.id])
+
     def __str__(self):
         return "{} - {} {} - {}".format(self.message_type, self.daydelta, self.time, self.protocol)
 

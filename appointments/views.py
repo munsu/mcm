@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView, DetailView, TemplateView
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import FormView, UpdateView, DeleteView
 
 from braces.views import JSONResponseMixin
 from crispy_forms.helper import FormHelper
@@ -29,7 +29,7 @@ from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
-from .forms import AppointmentsUploadForm, MessageTemplateForm, ProtocolForm
+from .forms import AppointmentsUploadForm, MessageTemplateForm, ProtocolForm, UpdateMessageTemplateForm
 from .models import Appointment, Protocol, Message, MessageAction, Constraint, MessageTemplate
 from .serializers import AppointmentSerializer, ProtocolSerializer
 from .tasks import send_sms
@@ -270,6 +270,7 @@ class MessageActionInline(InlineFormSet):
     fields = '__all__'
     extra = 1
 
+
 class ProtocolsDetailView(UpdateWithInlinesView):
     template_name = 'appointments/protocols-detail.html'
     model = Protocol
@@ -281,6 +282,7 @@ class ProtocolsDetailView(UpdateWithInlinesView):
         context['message_templates'] = self.get_object().templates.all()
         return context
 
+
 class MessageTemplatesListView(ListView):
     template_name = 'appointments/templates-list.html'
     model = MessageTemplate
@@ -289,13 +291,38 @@ class MessageTemplatesListView(ListView):
         return self.model.objects.filter(protocol__clients=self.request.user.profile.client)
 
 
-class MessageTemplatesDetailView(UpdateWithInlinesView):
-    template_name = 'appointments/templates-detail.html'
+class MessageTemplatesCreateView(CreateWithInlinesView):
+    template_name = 'appointments/templates-create.html'
     model = MessageTemplate
     # fields = '__all__'
     # exclude = ('content', 'content_tail')
     form_class = MessageTemplateForm
     inlines = [MessageActionInline]
+
+    def get_context_data(self, **kwargs):
+        context = super(MessageTemplatesCreateView, self).get_context_data(**kwargs)
+        context['protocol'] = Protocol.objects.get(id=context['protocol_pk'])
+        return context
+
+    def get_initial(self):
+        return {'protocol': self.kwargs.get('protocol_pk')}
+
+
+class MessageTemplatesDetailView(UpdateWithInlinesView):
+    template_name = 'appointments/templates-detail.html'
+    model = MessageTemplate
+    # fields = '__all__'
+    # exclude = ('content', 'content_tail')
+    form_class = UpdateMessageTemplateForm
+    inlines = [MessageActionInline]
+
+    def post(self, request, *args, **kwargs):
+        if self.request.POST.get('delete'):
+            self.object = self.get_object()
+            self.object.delete()
+            return HttpResponseRedirect(reverse('protocols:detail', args=[self.kwargs['protocol_pk']]))
+        return super(MessageTemplatesDetailView, self).post(request, *args, **kwargs)
+
 
 class ManageProtocolsView(UpdateWithInlinesView):
     template_name = 'appointments/protocols-list.html'

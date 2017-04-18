@@ -6,23 +6,20 @@
     <div class="row">
       <div class="col-sm-10 col-xs-12 col-sm-offset-1 col-xs-offset-0">
         <div class="panel panel-default">
-          <div class="panel-heading"><a href="{% url 'protocols:list' %}">Protocols</a> / {{ object.name }}</div>
+          <div class="panel-heading">
+            <a href="{% url 'protocols:list' %}">Protocols</a>&nbsp;/&nbsp; 
+            <a href="{% url 'protocols:detail' protocol.id %}">{{ protocol.name }}</a>&nbsp;/&nbsp;
+            New
+          </div>
           <div class="panel-body">
             <form id="protocol-form" method="post" action="#">
               {% csrf_token %}
-              <h4>Protocol</h4>
+              <h4>Message Template</h4>
               {{ form|crispy }}
-              <h4>Constraints</h4>
+              <h4>Message Actions</h4>
               <div class="form-inline">
               {{ inlines.0|crispy }}
               </div>
-              <h4>Message Templates</h4>
-              <ul>
-              {% for message_template in message_templates %}
-                <li><a href="{% url 'protocols:templates-detail' object.id message_template.id %}">{{ message_template }}</a></li>
-              {% endfor %}
-              <li><a href="{% url 'protocols:templates-create' object.id %}">New Message Template</a></li>
-              </ul>
               <input type="submit" value="Submit">
             </form>
           </div>

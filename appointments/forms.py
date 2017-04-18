@@ -13,6 +13,18 @@ class ProtocolForm(forms.ModelForm):
 
 
 class MessageTemplateForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(MessageTemplateForm, self).__init__(*args, **kwargs)
+        self.fields['protocol'].widget = forms.HiddenInput()
+
     class Meta:
         model = MessageTemplate
         exclude = ('content', 'content_tail')
+
+
+class UpdateMessageTemplateForm(MessageTemplateForm):
+    delete = forms.BooleanField(
+        required=False,
+        initial=False,
+        help_text='Check this to delete this object'
+    )
