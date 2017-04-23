@@ -199,6 +199,30 @@ class AppointmentsUploadFormView(FormView):
         return reverse('home')
 
 
+class DayAfterAppointmentsUploadFormView(FormView):
+    template_name = 'appointments/upload.html'
+    form_class = AppointmentsUploadForm
+
+    def form_valid(self, form):
+        file = form.cleaned_data.get('file')
+        appointments_data = []
+        reader = csv.DictReader(file)
+        for line in reader:
+            line = {k.lower(): v for k, v in line.iteritems()}
+            # appointments_data.append(line)
+            print json.dumps(line)
+        # serializer = AppointmentSerializer(data=appointments_data, many=True)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save(client=self.request.user.profile.client)
+        # print serializer.data
+
+        # TODO return number of created appointments.
+        return super(DayAfterAppointmentsUploadFormView, self).form_valid(form)
+
+    def get_success_url(self):
+        return reverse('home')
+
+
 class ProtocolsViewSet(viewsets.GenericViewSet):
     serializer_class = ProtocolSerializer
     # queryset = Protocol.objects.all()

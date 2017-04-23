@@ -36,7 +36,8 @@ appointments = [
         url(r'^confirm/$', views.ConfirmReportView.as_view(), name='confirm')
     ], namespace='reports')),
     url(r'^upload/', include([
-        url(r'^csv/$', views.AppointmentsUploadFormView.as_view(), name='csv')
+        url(r'^csv/$', views.AppointmentsUploadFormView.as_view(), name='csv'),
+        url(r'^csv/day_after/$', views.DayAfterAppointmentsUploadFormView.as_view(), name='day-after-csv')
     ], namespace='upload')),
     url(r'^', include(router.urls)),
 ]
