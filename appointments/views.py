@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, DateField
 from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect, HttpResponse
@@ -175,7 +176,7 @@ class AppointmentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class AppointmentsUploadFormView(FormView):
+class AppointmentsUploadFormView(SuccessMessageMixin, FormView):
     template_name = 'appointments/upload.html'
     form_class = AppointmentsUploadForm
 
@@ -198,8 +199,11 @@ class AppointmentsUploadFormView(FormView):
     def get_success_url(self):
         return reverse('home')
 
+    def get_success_message(self, cleaned_data):
+        return "YAY"
 
-class DayAfterAppointmentsUploadFormView(FormView):
+
+class DayAfterAppointmentsUploadFormView(SuccessMessageMixin, FormView):
     template_name = 'appointments/upload.html'
     form_class = AppointmentsUploadForm
 
@@ -221,6 +225,9 @@ class DayAfterAppointmentsUploadFormView(FormView):
 
     def get_success_url(self):
         return reverse('home')
+
+    def get_success_message(self, cleaned_data):
+        return "YAY"
 
 
 class ProtocolsViewSet(viewsets.GenericViewSet):

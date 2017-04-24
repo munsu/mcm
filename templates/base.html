@@ -76,6 +76,18 @@
 
     {% block main %}
       <main>
+        {% block messages %}
+          {% if messages %}
+          <div class="container">
+            {% for message in messages %}
+            <div class="alert{% if message.tags %} alert-{{ message.tags }}{% else %} alert-info{% endif %} alert-dismissible" role="alert">
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <strong>{{ message.tags|capfirst }}!</strong> {{ message }}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endblock messages%}
         {% block content %}{% endblock content %}
       </main>
     {% endblock main %}
