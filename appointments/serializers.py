@@ -5,7 +5,7 @@ from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
 from .models import (
     Appointment, Patient, Facility, Client, Protocol, MessageTemplate, MessageAction,
-    Constraint, Provider
+    Constraint, Provider, DayAfterAppointment
 )
 
 
@@ -155,6 +155,101 @@ class AppointmentSerializer(serializers.Serializer):
                 ret[field.field_name] = field.to_representation(attribute)
 
         return ret
+
+
+class DayAfterAppointmentSerializer(serializers.Serializer):
+    """
+    Appointment_facility    Facility Name   required    string  Facility at which this appointment is scheduled or occured; required for organizations submitting data for more than one facility
+    Appointment_Number  Appointment or Procedure Number required    string  Uniquely identifies an appointment or procedure within the health system
+    Account_Number  Patient Account Identifier  required    string  Unique identifier assigned by the provider Patient Accounting System (PAS) when a patient is admitted or seen for services
+    Patient_MRN Medical Record Number   desired string  Unique identifier assigned to an individual patient used to associate clinical records from one or more encounters
+    Appointment_Date    Appointment or Procedure Date   required    yyyy-MM-dd hh:mm:ss Date of appointment.  The daily upload should include only cases with any activity for (t-1) 00:00 through 23:59
+    Actual_Room Actual Operating Room or Procedure Room required    string  Procedure, Operating or Exam room into which this case or appointment actually occurred
+    Appointment_Status  Actual appointment status   required    string  Status of the appointment - Arrived, Completed, Cancelled, In Progress
+    Appointment_type    Appointment or Case Type    optional    string  Type of case (e.g., urgent, emergent, elective, etc.) or type of appointment (new visit, follow-up, etc.)
+    Schedule_Type   Schedule Type Indicator required    string  Indicates whether a case or appointment was scheduled as an elective or an add-on (for all cases into the future usually only elective - for cases from yesterday - both elective and add-on)
+    Delay_code  Delay Code  desired string  Code indicating reason for a delay of less than one day
+    delay_reason    Delay Reason    desired string  Reason indicating why case was delayed
+    cancel_code Cancellation Code   desired string  Code indicating reason for delay of one day or greater or case cancellation; could be a Boolean indicator simply indicating the case was cancelled
+    cancel_reason   Cancellation Reason desired string  Reason indicating why case was cancelled
+    cancel_dt   Cancellation Date   desired yyyy-MM-dd hh:mm:ss Date case was cancelled.  This is required if the record is a cancelled case.
+    preop_start_tm  Patient Start In PreOp (Holding)    optional    yyyy-MM-dd hh:mm:ss Date and time that the patient starts to be prepared for surgery
+    preop_end_tm    Patient Finished In PreOp (Holding) optional    yyyy-MM-dd hh:mm:ss Date and time that the patient is finished with prep for surgery
+    anes_start_tm   Anesthesia Start    optional    yyyy-MM-dd hh:mm:ss Date and time when the anesthesiologist began monitoring the patient
+    pat_in_tm   Patient In Room - Actual    required    yyyy-MM-dd hh:mm:ss Date and time when patient actually enters the operating room
+    sched_pat_in_tm Patient In Room - Scheduled required    yyyy-MM-dd hh:mm:ss Date and time when patient was scheduled to enter the operating
+    pat_out_tm  Patient Out Of Room - Actual    required    yyyy-MM-dd hh:mm:ss Date and time at which patient actually left the operating Room
+    sched_pat_out_tm    Patient Out Of Room - Scheduled desired yyyy-MM-dd hh:mm:ss Date and time at which patient was scheduled to leave the operating room
+    cut_tm  Cut Time - Actual   desired yyyy-MM-dd hh:mm:ss Date and time the procedure is actually begun ( i.e., incision)
+    sched_cut_tm    Cut Time - Scheduled    optional    yyyy-MM-dd hh:mm:ss Date and time the procedure was scheduled to begin (i.e., incision)
+    sched_close_tm  Procedure Finish (Close) - Scheduled    optional    yyyy-MM-dd hh:mm:ss Scheduled date and time when all instrument and sponge counts are completed and verified as correct; all post-op radiological studies to be done in the operating room are completed; all dressings and drains are secured; and the physician / surgeons have completed 
+    close_tm    Procedure Finish (Close) - Actual   desired yyyy-MM-dd hh:mm:ss Actual date and time when all instrument and sponge counts are completed and verified as correct; all post-op radiological studies to be done in the operating room are completed; all dressings and drains are secured; and the physician / surgeons have completed all
+    anes_stop_tm    Anesthesia Finish   optional    yyyy-MM-dd hh:mm:ss Date and time at which anesthesiologist turns over care of the patient to a post anesthesia care team (either PACU or ICU).
+    pacu_in_tm  Arrival in PACU optional    yyyy-MM-dd hh:mm:ss Date and time of patient arrival in Post Anesthesia Care Unit
+    pacu_ready_tm   Ready for Discharge from PACU   optional    yyyy-MM-dd hh:mm:ss Date and time at which the patient is medically ready for discharge from the Post Anesthesia Care Unit
+    pacu_out_tm Discharge from PACU optional    yyyy-MM-dd hh:mm:ss Date and time patient is transported out of Post Anesthesia Care Unit
+    cleanup_start_tm    Room Clean-Up Start optional    yyyy-MM-dd hh:mm:ss Date and time housekeeping begins cleanup of operating room
+    cleanup_stop_tm Room Clean-Up Finished  optional    yyyy-MM-dd hh:mm:ss Date and time operating room is clean and ready for setup of supplies and equipment for the next case
+    setup_start_tm  Room Set-Up Start   optional    yyyy-MM-dd hh:mm:ss Date and time when personnel begin setting-up, in the operating room, the supplies and equipment for the next case
+    setup_stop_tm   Room Ready - Actual optional    yyyy-MM-dd hh:mm:ss Date and time when room was actually cleaned and ready for the beginning of the next case
+    sched_case_dur  Case Duration - Scheduled   optional    integer Minutes allocated to the case during scheduling
+    sched_setup_dur Set-Up Duration - Scheduled optional    integer Minutes allocated to case set-up during scheduling
+    sched_cleanup_dur   Clean-Up Duration - Scheduled   optional    integer Minutes allocated to clean up during scheduling
+    pacu_delay_reason   PACU delay reason   optional    string  Reason why patient was delay in leaving the PACU
+    """
+    appointment_facility = serializers.CharField()
+    appointment_number = serializers.CharField()
+    account_number = serializers.CharField()
+    patient_mrn = serializers.CharField()
+    appointment_date = serializers.DateTimeField()
+    actual_room = serializers.CharField()
+    appointment_status = serializers.CharField()
+    appointment_type = serializers.CharField(allow_blank=True, required=False)
+    schedule_type = serializers.CharField()
+    delay_code = serializers.CharField(allow_blank=True, required=False)
+    delay_reason = serializers.CharField(allow_blank=True, required=False)
+    cancel_code = serializers.CharField(allow_blank=True, required=False)
+    cancel_reason = serializers.CharField(allow_blank=True, required=False)
+    cancel_dt = serializers.DateTimeField(required=False)
+    preop_start_tm = serializers.DateTimeField(required=False)
+    preop_end_tm = serializers.DateTimeField(required=False)
+    anes_start_tm = serializers.DateTimeField(required=False)
+    pat_in_tm = serializers.DateTimeField()
+    sched_pat_in_tm = serializers.DateTimeField()
+    pat_out_tm = serializers.DateTimeField()
+    sched_pat_out_tm = serializers.DateTimeField(required=False)
+    cut_tm = serializers.DateTimeField(required=False)
+    sched_cut_tm = serializers.DateTimeField(required=False)
+    sched_close_tm = serializers.DateTimeField(required=False)
+    close_tm = serializers.DateTimeField(required=False)
+    anes_stop_tm = serializers.DateTimeField(required=False)
+    pacu_in_tm = serializers.DateTimeField(required=False)
+    pacu_ready_tm = serializers.DateTimeField(required=False)
+    pacu_out_tm = serializers.DateTimeField(required=False)
+    cleanup_start_tm = serializers.DateTimeField(required=False)
+    cleanup_stop_tm = serializers.DateTimeField(required=False)
+    setup_start_tm = serializers.DateTimeField(required=False)
+    setup_stop_tm = serializers.DateTimeField(required=False)
+    sched_case_dur = serializers.IntegerField(required=False)
+    sched_setup_dur = serializers.IntegerField(required=False)
+    sched_cleanup_dur = serializers.IntegerField(required=False)
+    pacu_delay_reason = serializers.CharField(allow_blank=True, required=False)
+
+    def create(self, validated_data):
+        logger.info("VALIDATED DATA {}".format(validated_data))
+        try:
+            appointment_number = validated_data.pop('appointment_number')
+            user = self.context['request'].user
+            appointment = Appointment.objects.filter(
+                appointment_number=appointment_number,
+                client=user.profile.client).first()
+        except Appointment.DoesNotExist:
+            raise serializers.ValidationError(
+                'Appointment(appointment_number={}) does not exist'.format(appointment_number))
+
+        day_after_appointment = DayAfterAppointment(appointment=appointment, data=validated_data)
+        day_after_appointment.save()
+        return day_after_appointment
 
 
 class MessageActionSerializer(serializers.ModelSerializer):

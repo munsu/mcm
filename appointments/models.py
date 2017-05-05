@@ -6,6 +6,7 @@ import string
 
 from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import Q
 from django.forms.models import model_to_dict
@@ -764,6 +765,15 @@ class Appointment(models.Model):
             self.local_appointment_date,
             self.patient.id,
             self.appointment_confirm_status)
+
+
+class DayAfterAppointment(TimeStampedModel):
+    appointment = models.ForeignKey(
+        'Appointment', models.CASCADE, related_name='day_after')
+    data = JSONField(encoder=DjangoJSONEncoder)
+
+    def __str__(self):
+        return self.appointment.__str__()
 
 
 class Patient(models.Model):

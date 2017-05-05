@@ -32,7 +32,7 @@ from rest_framework.settings import api_settings
 
 from .forms import AppointmentsUploadForm, MessageTemplateForm, ProtocolForm, UpdateMessageTemplateForm
 from .models import Appointment, Protocol, Message, MessageAction, Constraint, MessageTemplate
-from .serializers import AppointmentSerializer, ProtocolSerializer
+from .serializers import AppointmentSerializer, ProtocolSerializer, DayAfterAppointmentSerializer
 from .tasks import send_sms
 from .utils import language
 
@@ -200,7 +200,13 @@ class AppointmentsUploadFormView(SuccessMessageMixin, FormView):
         return reverse('home')
 
     def get_success_message(self, cleaned_data):
-        return "YAY"
+        file = cleaned_data.get('file')
+        appointments_data = []
+        reader = csv.DictReader(file)
+        for line in reader:
+            line = {k.lower(): v for k, v in line.iteritems() if v}
+            appointments_data.append(line)
+        return "Updated {} appointments.".format(len(appointments_data))
 
 
 class DayAfterAppointmentsUploadFormView(SuccessMessageMixin, FormView):
@@ -209,12 +215,15 @@ class DayAfterAppointmentsUploadFormView(SuccessMessageMixin, FormView):
 
     def form_valid(self, form):
         file = form.cleaned_data.get('file')
-        appointments_data = []
+        day_after_appointments_data = []
         reader = csv.DictReader(file)
         for line in reader:
-            line = {k.lower(): v for k, v in line.iteritems()}
-            # appointments_data.append(line)
+            line = {k.lower(): v for k, v in line.iteritems() if v}
+            day_after_appointments_data.append(line)
             print json.dumps(line)
+        serializer = DayAfterAppointmentSerializer(data=day_after_appointments_data, many=True, context={'request': self.request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         # serializer = AppointmentSerializer(data=appointments_data, many=True)
         # serializer.is_valid(raise_exception=True)
         # serializer.save(client=self.request.user.profile.client)
@@ -227,7 +236,13 @@ class DayAfterAppointmentsUploadFormView(SuccessMessageMixin, FormView):
         return reverse('home')
 
     def get_success_message(self, cleaned_data):
-        return "YAY"
+        file = cleaned_data.get('file')
+        day_after_appointments_data = []
+        reader = csv.DictReader(file)
+        for line in reader:
+            line = {k.lower(): v for k, v in line.iteritems() if v}
+            day_after_appointments_data.append(line)
+        return "Updated {} appointments.".format(len(day_after_appointments_data))
 
 
 class ProtocolsViewSet(viewsets.GenericViewSet):

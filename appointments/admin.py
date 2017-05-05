@@ -2,7 +2,7 @@ from django.contrib import admin
 from modeltranslation.admin import TranslationAdmin
 from .models import (
     Client, UserProfile, Appointment, Patient, Protocol, MessageTemplate, Message,
-    MessageAction, MessageLog, Reply, Constraint, Facility, Provider
+    MessageAction, MessageLog, Reply, Constraint, Facility, Provider, DayAfterAppointment
 )
 
 
@@ -32,6 +32,11 @@ class AppointmentInline(admin.StackedInline):
     extra = 0
 
 
+class DayAfterAppointmentInline(admin.StackedInline):
+    model = DayAfterAppointment
+    extra = 0
+
+
 class PatientAdmin(admin.ModelAdmin):
     """
     display details.
@@ -45,6 +50,10 @@ class PatientAdmin(admin.ModelAdmin):
 
 
 class AppointmentAdmin(admin.ModelAdmin):
+    inlines = [
+        DayAfterAppointmentInline,
+    ]
+
     def get_form(self, request, obj=None, **kwargs):
         form = super(AppointmentAdmin, self).get_form(request, obj, **kwargs)
         form.base_fields['appointment_provider'].queryset = Provider.objects.filter(client=obj.client)

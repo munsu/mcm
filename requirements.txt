@@ -1,5 +1,5 @@
 celery==3.1.24
-Django==1.10.2
+Django==1.11
 django-braces==1.9.0
 django-model-utils==2.6
 django-modeltranslation==0.12
